@@ -1,0 +1,3 @@
+django-qr-code==2.2.0
+weasyprint==53.3
+zopfli==0.1.8
