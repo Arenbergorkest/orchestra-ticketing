@@ -22,8 +22,6 @@ def to_timestamp(dt):
     return int((dt - epoch).total_seconds() * 1000)
 
 
-
-
 @login_required
 def stats_user(request, id):
     """Stats of a user."""

@@ -160,6 +160,9 @@ def order(request, id):
         return render(request, 'ticketing/order_confirm.html', {
             'performance': performance,
             'nr_of_tickets': len(tickets),
+            # Required info for followup step:
+            'order_id': order.id,
+            'order_hash': order.hash,
         })
     else:
         return render(request, 'ticketing/order.html', {
@@ -330,27 +333,23 @@ def qr_info(request, id, code):
     if code != ticket.code:
         raise Http404
 
-    return redirect(
-        'https://www.alumniarenbergorkest.be/'
-        'static/concert/Programmaboekje.pdf'
-    )
-    # OLD CODE:
-    # try:
-    #     online_order = OnlineOrder.objects.get(id=ticket.order.id)
-    # except Exception:
-    #     raise Http404
+    try:
+        online_order = OnlineOrder.objects.get(id=ticket.order.id)
+    except Exception:
+        raise Http404
 
-    # if ("kassaticket" in code
-    #         or online_order.performance.date.date() <= datetime.now().date()):
+    if ("kassaticket" in code
+            or online_order.performance.date.date() <= datetime.now().date()):
+        # TODO: Add better redirect for program info...
+        return redirect("./tickets/")
 
-    # return render(request, "ticketing/qr_page.html", {
-    #     "ticket": ticket,
-    #     "order": online_order,
-    # })
+    return render(request, "ticketing/qr_page.html", {
+        "ticket": ticket,
+        "order": online_order,
+    })
+
 
 # Scanning
-
-
 @login_required
 @user_passes_test(lambda u: u.is_staff, login_url='accessrestricted')
 @user_passes_test(lambda u: u.is_active, login_url='inactive')
