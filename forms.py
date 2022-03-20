@@ -97,5 +97,5 @@ class OnlineOrderForm(ModelForm):
         model = OnlineOrder
         exclude = ['performance', 'date', 'tickets']
         fields = ('first_name', 'last_name', 'email',
-                  'first_concert',
+                  'first_concert', 'payment_method'
                   'marketing_feedback', 'remarks', 'hash')
