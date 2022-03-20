@@ -230,6 +230,35 @@ def _send_order_payed(request, order: OnlineOrder, subject: str):
         log.info(message_plain)
 
 
+def order_info(request, id, code):
+    """Check order information."""
+    try:
+        order = OnlineOrder.objects.get(id=id)
+    except Exception:
+        raise Http404
+
+    if order.hash != code:
+        raise Http404
+
+    ticket_amount = {}
+    ticket_price = {}
+    for ticket in order.tickets.all():
+        if ticket.price_category.name not in ticket_amount:
+            ticket_amount[ticket.price_category.name] = 1
+        else:
+            ticket_amount[ticket.price_category.name] += 1
+
+        ticket_price[ticket.price_category.name] = ticket.price_category.price
+
+    ticket_info = []
+    for name in ticket_price:
+        ticket_info.append([name, ticket_price[name], ticket_amount[name]])
+
+    data = _create_order_info(order, ticket_info, order.performance)
+    data['order'] = order
+    return render(request, 'ticketing/order_info.html', data)
+
+
 @login_required
 @user_passes_test(lambda u: u.is_staff, login_url='accessrestricted')
 @user_passes_test(lambda u: u.is_active, login_url='inactive')
@@ -281,6 +310,24 @@ def test_mail(request, id):
         _send_order_email(order, ticket_info, order.performance)
 
     return render(request, 'ticketing/mail/order.html', data)
+
+
+def download_tickets(request, id, code):
+    """Download tickets."""
+    try:
+        order = OnlineOrder.objects.get(id=id)
+    except Exception:
+        raise Http404
+
+    if order.hash != code or not order.payed:
+        raise Http404
+
+    with translation.override(order.language):
+        data, pdf_file = _create_data_and_pdf_order(request, order)
+        response = HttpResponse(pdf_file, content_type='application/pdf')
+        response['Content-Disposition'] = 'filename="tickets.pdf"'
+
+    return response
 
 
 @login_required
