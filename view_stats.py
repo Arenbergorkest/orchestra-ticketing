@@ -97,7 +97,7 @@ def stats(request):
     user_ranks = sorted(user_ranks, key=lambda user: -user[1])[0:20]
 
     # Render template and pass all processed data
-    return render(request, 'ticketing/stats.html', {
+    return render(request, 'ticketing/stats/total.html', {
         'performance_counts': performance_info, 'user_counts': user_ranks,
         'graph_datasets': graph_datasets, 'graph_labels': graph_labels
     })

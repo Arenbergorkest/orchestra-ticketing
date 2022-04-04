@@ -129,7 +129,7 @@ def order(request, id):
         try:
             Order.objects.get(hash=order.hash)
             # Already posted
-            return render(request, 'ticketing/order_repost.html', {
+            return render(request, 'ticketing/order/repost.html', {
                 'performance': performance
             })
         except ObjectDoesNotExist:
@@ -157,7 +157,7 @@ def order(request, id):
         _check_soldout(performance)
 
         # Redirect
-        return render(request, 'ticketing/order_confirm.html', {
+        return render(request, 'ticketing/order/confirm.html', {
             'performance': performance,
             'nr_of_tickets': len(tickets),
             # Required info for followup step:
@@ -165,7 +165,7 @@ def order(request, id):
             'order_hash': order.hash,
         })
     else:
-        return render(request, 'ticketing/order.html', {
+        return render(request, 'ticketing/order/form.html', {
             "form": form,
             "tform": tform,
             'performance': performance
@@ -256,7 +256,7 @@ def order_info(request, id, code):
 
     data = _create_order_info(order, ticket_info, order.performance)
     data['order'] = order
-    return render(request, 'ticketing/order_info.html', data)
+    return render(request, 'ticketing/order/info.html', data)
 
 
 @login_required
@@ -275,7 +275,7 @@ def send_order_payed(request, id):
     order.payed = True
     order.save()
     _send_order_payed(request, order, subject)
-    return render(request, 'ticketing/mail_send.html', {
+    return render(request, 'ticketing/order/mail_send.html', {
         'id': id,
         'order': order
     })
@@ -390,7 +390,7 @@ def qr_info(request, id, code):
         # TODO: Add better redirect for program info...
         return redirect("./tickets/")
 
-    return render(request, "ticketing/qr_page.html", {
+    return render(request, "ticketing/qr/info.html", {
         "ticket": ticket,
         "order": online_order,
     })
@@ -402,7 +402,7 @@ def qr_info(request, id, code):
 @user_passes_test(lambda u: u.is_active, login_url='inactive')
 def qr_scan(request):
     """Test a QR code."""
-    return render(request, 'ticketing/scan.html')
+    return render(request, 'ticketing/qr/scan.html')
 
 
 @csrf_exempt
