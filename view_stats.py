@@ -29,7 +29,7 @@ def stats_user(request, id):
 
 
 @login_required
-def stats(request, id):
+def stats(request):
     """Stats for a performance."""
     graph_labels = []
     graph_datasets = []
@@ -83,8 +83,11 @@ def stats(request, id):
                 'total_tickets': total_tickets,
                 'order': order,
             })
-        graph_datasets.append([performance.date.strftime(
-            '%a'), graph_dataset, graph_start, graph_end])
+        graph_datasets.append([
+            performance.seats,
+            performance.date.strftime('%a'),
+            graph_dataset, graph_start, graph_end
+        ])
         graph_labels.append(performance.date.strftime('%a'))
 
     # Getting user ranking

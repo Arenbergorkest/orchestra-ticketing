@@ -14,24 +14,9 @@ from django.utils.translation import gettext_lazy as _
 from django.utils.timezone import get_current_timezone, now
 from django.utils import timezone
 from model_utils.managers import InheritanceManager
-from orchestra_members.models import User
 from string import ascii_lowercase
 from random import choices
-
-
-# Base classes
-class Season(Model):
-    """Everything starts with a season."""
-
-    name = CharField(max_length=50, unique=True)
-    short_description = CharField(max_length=300, help_text=_(
-        "Short internal description for users."
-    ))
-    active = BooleanField(default=True)
-
-    def __str__(self):
-        """Representation."""
-        return self.name
+from django.contrib.auth import get_user_model
 
 
 class Location(Model):
@@ -69,7 +54,6 @@ class Production(Model):
     """Once rehearsed, production can start."""
 
     name = CharField(max_length=100, unique=True)
-    season = ForeignKey(Season, on_delete=models.CASCADE)
     description = CharField(max_length=5000, help_text=_(
         "Promotional material, can contain html code."
     ))
@@ -130,7 +114,8 @@ class Order(Model):
         Performance, related_name='orders', on_delete=models.CASCADE)
     date = DateTimeField(_("Date of order"))
     # Referred musician
-    seller = ForeignKey(User, blank=True, null=True, on_delete=models.SET_NULL)
+    seller = ForeignKey(get_user_model(),
+                        blank=True, null=True, on_delete=models.SET_NULL)
     remarks = TextField(blank=True, null=True)
     payed = BooleanField(default=False)
     hash = CharField(max_length=128)
@@ -155,6 +140,13 @@ class Order(Model):
             self.seller, self.date.astimezone(get_current_timezone()))
 
 
+CHOICES = (
+    (None, _("- Choose -")),
+    (True, _("Yes")),
+    (False, _("No")),
+)
+
+
 class OnlineOrder(Order):
     """Model for online order."""
 
@@ -169,7 +161,7 @@ class OnlineOrder(Order):
     payment_method = CharField(
         max_length=8, choices=payment_method_choices, default=TRANSFER)
     # BooleanField is allowed to be null
-    first_concert = BooleanField(null=True)
+    first_concert = BooleanField(null=True, choices=CHOICES)
     marketing_feedback = CharField(max_length=120, null=True, blank=True)
     language = CharField(max_length=5, default='nl')
 
@@ -218,6 +210,6 @@ class Ticket(Model):
         """QR code."""
         return 'https://alumniarenbergorkest.be' + (
             reverse('tickets:qr_info', kwargs={
-            'id': self.id,
-            'code': self.code,
-        }))
+                'id': self.id,
+                'code': self.code,
+            }))

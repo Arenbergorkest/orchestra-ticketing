@@ -6,7 +6,7 @@ from django.utils.translation import gettext_lazy as _
 from django.urls import reverse
 from django.utils.html import format_html
 from alumnisite.tools import ExportCsvMixin
-from .models import Season, Location, PriceCategory, Production, Performance, \
+from .models import Location, PriceCategory, Production, Performance, \
     Ticket, OnlineOrder
 
 
@@ -35,26 +35,6 @@ def change_active(parent, request, queryset, target_state=True,
         )
 
 
-@admin.register(Season)
-class SeasonAdmin(ModelAdmin):
-    """A season."""
-
-    list_display = ('name', 'short_description', 'active')
-
-    def make_active(self, request, queryset):
-        """Make active."""
-        change_active(self, request, queryset, True,
-                      _('season'), _('seasons'))
-
-    def make_inactive(self, request, queryset):
-        """Make inactive."""
-        change_active(self, request, queryset, False,
-                      _('season'), _('seasons'))
-
-    make_active.short_description = _("Make active")
-    make_inactive.short_description = _("Make inactive")
-
-
 @admin.register(Location)
 class LocationAdmin(ModelAdmin):
     """Location."""
@@ -80,7 +60,7 @@ class PerformanceInline(admin.TabularInline):
 class ProductionAdmin(ModelAdmin):
     """A production."""
 
-    list_display = ('name', 'season', 'description', 'active')
+    list_display = ('name', 'description', 'active')
     inlines = [
         PerformanceInline,
     ]

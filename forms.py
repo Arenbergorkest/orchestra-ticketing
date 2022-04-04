@@ -3,7 +3,6 @@
 from django.forms import ModelForm, Form, IntegerField, HiddenInput
 from django.utils.translation import gettext_lazy as _
 from django.utils.timezone import now
-from orchestra_members.models import User
 from .models import OnlineOrder
 
 

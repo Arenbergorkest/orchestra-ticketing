@@ -91,7 +91,7 @@ def _send_order_email(order: OnlineOrder, ticket_info, performance):
 # HTTP pages
 def overview(request):
     """Overview of all current ticket sales."""
-    productions = Production.objects.filter(active=True, season__active=True)
+    productions = Production.objects.filter(active=True)
     subdata = []
     for production in productions:
         performances = list(sorted(

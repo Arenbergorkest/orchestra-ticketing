@@ -1,7 +1,7 @@
 """Urls for user management."""
 
 from django.urls import path
-from orchestra_season import views, view_stats
+from . import views, view_stats
 
 app_name = 'tickets'
 urlpatterns = [
@@ -9,7 +9,7 @@ urlpatterns = [
     path('order/<int:id>/', views.order, name='order'),
     path('order/<int:id>/member/', views.order_paper, name='order_paper'),
     path(r'sold/<int:id>/', view_stats.stats_user, name='stats_user'),
-    path(r'stats/<int:id>/', view_stats.stats, name='stats'),
+    path(r'stats/', view_stats.stats, name='stats'),
 
     # Scanning tickets
     path(r'qr/scan', views.qr_scan, name='qr_scan'),
