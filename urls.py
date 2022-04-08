@@ -26,6 +26,9 @@ urlpatterns = [
     path(r'test/<int:id>/', views.test_mail, name='test_mail'),
     path(r'test/<int:id>/qr', views.test_qr, name='test_qr'),
     path(r'test/<int:id>/qrmail', views.test_qr_mail, name='test_qr_mail'),
+
     # Export as CSV
     path(r'csv/<int:id>/', view_stats.csv_export, name='csv'),
+    path(r'csv/<int:id>/', view_stats.csv_export, name='csv_online'),
+    path(r'csv/<int:id>/', view_stats.csv_export, name='csv_paper'),  # TODO
 ]

@@ -101,6 +101,10 @@ class Performance(Model):
                 and self.open_sales <= timezone.now()
                 and self.close_sales >= timezone.now())
 
+    def is_papersales_open(self):
+        """Paper sales."""
+        return True  # TODO
+
     def __str__(self):
         """Format."""
         return '{} on {:%b %d} @ {}'.format(self.production.name, self.date,
