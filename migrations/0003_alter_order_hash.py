@@ -6,7 +6,7 @@ from django.db import migrations, models
 class Migration(migrations.Migration):
 
     dependencies = [
-        ('orchestra_season', '0002_alter_production_name_squashed_0007_auto_20210810_1522'),
+        ('orchestra_ticketing', '0002_alter_production_name_squashed_0007_auto_20210810_1522'),
     ]
 
     operations = [

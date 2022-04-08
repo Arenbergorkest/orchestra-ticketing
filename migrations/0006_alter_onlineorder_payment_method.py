@@ -6,7 +6,7 @@ from django.db import migrations, models
 class Migration(migrations.Migration):
 
     dependencies = [
-        ('orchestra_season', '0005_add_language'),
+        ('orchestra_ticketing', '0005_add_language'),
     ]
 
     operations = [

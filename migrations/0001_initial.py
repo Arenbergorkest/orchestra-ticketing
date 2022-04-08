@@ -52,7 +52,7 @@ class Migration(migrations.Migration):
                 ('description', models.CharField(help_text='Promotional material, can contain html code.', max_length=5000)),
                 ('image', models.ImageField(blank=True, null=True, upload_to='static/upload')),
                 ('active', models.BooleanField(default=True)),
-                ('season', models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, to='orchestra_season.season')),
+                ('season', models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, to='orchestra_ticketing.season')),
             ],
         ),
         migrations.CreateModel(
@@ -66,9 +66,9 @@ class Migration(migrations.Migration):
                 ('close_transfer_sales', models.DateTimeField(default=django.utils.timezone.now, verbose_name='Close transfer payment method')),
                 ('close_sales', models.DateTimeField(default=django.utils.timezone.now, verbose_name='Close ticket sales')),
                 ('close_paper_sales', models.DateTimeField(default=django.utils.timezone.now, verbose_name='Close paper sales (by members)')),
-                ('location', models.ForeignKey(null=True, on_delete=django.db.models.deletion.SET_NULL, to='orchestra_season.location')),
-                ('price_categories', models.ManyToManyField(to='orchestra_season.PriceCategory')),
-                ('production', models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, related_name='performances', to='orchestra_season.production')),
+                ('location', models.ForeignKey(null=True, on_delete=django.db.models.deletion.SET_NULL, to='orchestra_ticketing.location')),
+                ('price_categories', models.ManyToManyField(to='orchestra_ticketing.PriceCategory')),
+                ('production', models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, related_name='performances', to='orchestra_ticketing.production')),
             ],
         ),
     ]

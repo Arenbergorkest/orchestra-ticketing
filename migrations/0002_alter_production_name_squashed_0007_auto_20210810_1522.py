@@ -7,10 +7,10 @@ import django.db.models.deletion
 
 class Migration(migrations.Migration):
 
-    replaces = [('orchestra_season', '0002_alter_production_name'), ('orchestra_season', '0003_production_partners'), ('orchestra_season', '0004_add_orders'), ('orchestra_season', '0005_alter_onlineorder_marketing_feedback'), ('orchestra_season', '0006_alter_onlineorder_marketing_feedback'), ('orchestra_season', '0007_auto_20210810_1522')]
+    replaces = [('orchestra_ticketing', '0002_alter_production_name'), ('orchestra_ticketing', '0003_production_partners'), ('orchestra_ticketing', '0004_add_orders'), ('orchestra_ticketing', '0005_alter_onlineorder_marketing_feedback'), ('orchestra_ticketing', '0006_alter_onlineorder_marketing_feedback'), ('orchestra_ticketing', '0007_auto_20210810_1522')]
 
     dependencies = [
-        ('orchestra_season', '0001_initial'),
+        ('orchestra_ticketing', '0001_initial'),
         migrations.swappable_dependency(settings.AUTH_USER_MODEL),
     ]
 
@@ -27,7 +27,7 @@ class Migration(migrations.Migration):
                 ('date', models.DateTimeField(verbose_name='Date of order')),
                 ('remarks', models.TextField(blank=True, null=True)),
                 ('payed', models.BooleanField(default=False)),
-                ('performance', models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, related_name='orders', to='orchestra_season.performance')),
+                ('performance', models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, related_name='orders', to='orchestra_ticketing.performance')),
                 ('seller', models.ForeignKey(blank=True, null=True, on_delete=django.db.models.deletion.SET_NULL, to=settings.AUTH_USER_MODEL)),
                 ('hash', models.CharField(default=' ', max_length=128)),
             ],
@@ -41,14 +41,14 @@ class Migration(migrations.Migration):
             name='Ticket',
             fields=[
                 ('id', models.AutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
-                ('order', models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, related_name='tickets', to='orchestra_season.order')),
-                ('price_category', models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, to='orchestra_season.pricecategory')),
+                ('order', models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, related_name='tickets', to='orchestra_ticketing.order')),
+                ('price_category', models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, to='orchestra_ticketing.pricecategory')),
             ],
         ),
         migrations.CreateModel(
             name='OnlineOrder',
             fields=[
-                ('order_ptr', models.OneToOneField(auto_created=True, on_delete=django.db.models.deletion.CASCADE, parent_link=True, primary_key=True, serialize=False, to='orchestra_season.order')),
+                ('order_ptr', models.OneToOneField(auto_created=True, on_delete=django.db.models.deletion.CASCADE, parent_link=True, primary_key=True, serialize=False, to='orchestra_ticketing.order')),
                 ('first_name', models.CharField(max_length=75)),
                 ('last_name', models.CharField(max_length=75)),
                 ('email', models.EmailField(max_length=254)),
@@ -56,7 +56,7 @@ class Migration(migrations.Migration):
                 ('first_concert', models.BooleanField(null=True)),
                 ('marketing_feedback', models.CharField(blank=True, max_length=120, null=True)),
             ],
-            bases=('orchestra_season.order',),
+            bases=('orchestra_ticketing.order',),
         ),
         migrations.AlterField(
             model_name='performance',

@@ -6,7 +6,7 @@ from django.db import migrations, models
 class Migration(migrations.Migration):
 
     dependencies = [
-        ('orchestra_season', '0001_initial'),
+        ('orchestra_ticketing', '0001_initial'),
     ]
 
     operations = [
