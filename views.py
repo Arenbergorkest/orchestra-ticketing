@@ -2,7 +2,7 @@
 
 from django.http import JsonResponse
 from django.shortcuts import render
-from django.http import Http404
+from django.http import Http404, HttpResponseRedirect
 from django.utils.timezone import now
 from django.template.loader import render_to_string
 from django.utils import translation
@@ -12,14 +12,15 @@ from django.utils.translation import gettext_lazy as _
 from django.utils.translation import get_language
 from django.core.exceptions import ObjectDoesNotExist
 from django.contrib.auth.decorators import login_required, user_passes_test
+from django.urls import reverse
 from secrets import token_urlsafe
-from .models import Production, Performance, Ticket, Order, OnlineOrder
+from .models import Production, Performance, Ticket, Order, OnlineOrder, \
+        PaperOrder
 from .forms import OnlineOrderForm, TicketsForm
 from django.views.decorators.csrf import csrf_exempt
 from weasyprint import HTML
 from django.template.loader import get_template
 from django.http import HttpResponse
-from datetime import datetime
 from django.shortcuts import redirect
 
 # Auxillary functions
@@ -117,7 +118,7 @@ def order(request, id):
     """Buy a ticket."""
     try:
         performance = Performance.objects.get(id=id)
-    except Exception:
+    except ObjectDoesNotExist:
         raise Http404
 
     if not performance.is_open:
@@ -241,7 +242,7 @@ def order_info(request, id, code):
     """Check order information."""
     try:
         order = OnlineOrder.objects.get(id=id)
-    except Exception:
+    except ObjectDoesNotExist:
         raise Http404
 
     if order.hash != code:
@@ -273,7 +274,7 @@ def send_order_payed(request, id):
     """Send that the order is payed including tickets."""
     try:
         order = OnlineOrder.objects.get(id=id)
-    except Exception:
+    except ObjectDoesNotExist:
         raise Http404
 
     subject = _("Tickets: %s") % (
@@ -295,7 +296,7 @@ def test_mail(request, id):
     """Buy a ticket."""
     try:
         order = OnlineOrder.objects.get(id=id)
-    except Exception:
+    except ObjectDoesNotExist:
         raise Http404
 
     # Send the mail in the language of the original user
@@ -323,7 +324,7 @@ def download_tickets(request, id, code):
     """Download tickets."""
     try:
         order = OnlineOrder.objects.get(id=id)
-    except Exception:
+    except ObjectDoesNotExist:
         raise Http404
 
     if order.hash != code or not order.payed:
@@ -344,7 +345,7 @@ def test_qr(request, id):
     """Test creation QR code and PDF."""
     try:
         order = OnlineOrder.objects.get(id=id)
-    except Exception:
+    except ObjectDoesNotExist:
         raise Http404
 
     with translation.override(order.language):
@@ -362,7 +363,7 @@ def test_qr_mail(request, id):
     """Test creation QR code and PDF."""
     try:
         order = OnlineOrder.objects.get(id=id)
-    except Exception:
+    except ObjectDoesNotExist:
         raise Http404
 
     data, pdf_file = _create_data_and_pdf_order(request, order)
@@ -372,8 +373,32 @@ def test_qr_mail(request, id):
 @login_required
 def order_paper(request, id):
     """Register a paper sales order."""
-    # TODO
-    raise Http404
+    # If it isn't an active performance, raise 404
+    try:
+        performance = Performance.objects.get(id=id)
+    except ObjectDoesNotExist:
+        raise Http404
+
+    if not performance.is_papersales_open:
+        raise Http404
+
+    tform = TicketsForm(performance, request.POST or None)
+    if request.POST and tform.is_valid():
+        paper_order = PaperOrder.objects.create(
+            performance=performance, date=now(),
+            seller=request.user
+        )
+        # Create tickets, should be created in bulk (TODO)
+        tickets = []
+        for categ in performance.price_categories.all():
+            for i in range(tform.cleaned_data.get(categ.name)):
+                tickets.append(Ticket.objects.create(
+                    price_category=categ, order=paper_order
+                ))
+        # TODO: Give usefull response with ticket count
+        return HttpResponseRedirect(reverse('tickets:stats_user'))
+    return render(request, 'ticketing/order/form_paper.html',
+                  {'tform': tform, "performance": str(performance)})
 
 
 # QR codes
@@ -381,7 +406,7 @@ def qr_info(request, id, code):
     """QR information."""
     try:
         ticket = Ticket.objects.get(id=id)
-    except Exception:
+    except ObjectDoesNotExist:
         raise Http404
 
     if code != ticket.code:
@@ -389,11 +414,11 @@ def qr_info(request, id, code):
 
     try:
         online_order = OnlineOrder.objects.get(id=ticket.order.id)
-    except Exception:
+    except ObjectDoesNotExist:
         raise Http404
 
     if ("kassaticket" in code
-            or online_order.performance.date.date() <= datetime.now().date()):
+            or online_order.performance.date.date() <= now().date()):
         # TODO: Add better redirect for program info...
         return redirect("./tickets/")
 
@@ -446,7 +471,7 @@ def qr_reply(request):
                 valid = True
                 already_scanned = False
                 message = "KASSA TICKET!"
-            elif ticket.order.performance.date.date() != datetime.now().date():
+            elif ticket.order.performance.date.date() != now().date():
                 message += " WRONG DAY - Ticket for concert %s on %s" % (
                     ticket.order.performance,
                     ticket.order.performance.date.strftime("%a %d/%m/%y")

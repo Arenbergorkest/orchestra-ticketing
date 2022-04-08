@@ -8,8 +8,8 @@ urlpatterns = [
     path('', views.overview, name='overview'),
     path('order/<int:id>/', views.order, name='order'),
     path('order/<int:id>/member/', views.order_paper, name='order_paper'),
-    path(r'sold/<int:id>/', view_stats.stats_user, name='stats_user'),
-    path(r'stats/', view_stats.stats, name='stats'),
+    path('stats/personal/', view_stats.stats_user, name='stats_user'),
+    path('stats/', view_stats.stats, name='stats'),
 
     # Scanning tickets
     path(r'qr/scan', views.qr_scan, name='qr_scan'),

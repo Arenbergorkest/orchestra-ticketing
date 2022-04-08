@@ -27,7 +27,7 @@ def to_timestamp(dt):
 
 
 @login_required
-def stats_user(request, id):
+def stats_user(request):
     """
     Show personal statistics.
 
@@ -63,7 +63,7 @@ def stats_user(request, id):
         'total_num_unpaid_paperorders': sum(
             [o.num_tickets for o in PaperOrder.objects.filter(
                 seller=request.user, paid=False)])}
-    return render(request, 'internal/sales_user.html', data)
+    return render(request, 'ticketing/stats/user.html', data)
 
 
 @login_required
