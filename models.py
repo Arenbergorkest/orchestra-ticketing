@@ -8,7 +8,7 @@ Each production having multiple performances.
 from django.db import models
 from django.db.models import Model, CharField, ImageField, BooleanField, \
     ForeignKey, ManyToManyField, IntegerField, FloatField, DateTimeField, \
-    TextField, EmailField
+    TextField, EmailField, PositiveSmallIntegerField
 from django.urls import reverse
 from django.utils.translation import gettext_lazy as _
 from django.utils.timezone import get_current_timezone, now
@@ -95,6 +95,11 @@ class Performance(Model):
         return (not self.active or self.close_sales < timezone.now())
 
     @property
+    def is_transfer_available(self):
+        """Check if it is closed forever."""
+        return (self.active and self.close_transfer_sales > timezone.now())
+
+    @property
     def is_open(self):
         """Open sales."""
         return (self.active
@@ -168,6 +173,7 @@ class OnlineOrder(Order):
     first_concert = BooleanField(null=True, choices=CHOICES)
     marketing_feedback = CharField(max_length=120, null=True, blank=True)
     language = CharField(max_length=5, default='nl')
+    newsletter_signup = BooleanField()
 
     @property
     def payment_message(self):
@@ -195,6 +201,12 @@ def random_key():
     return ''.join(choices(ascii_lowercase, k=18))
 
 
+class PaperOrder(Order):
+    """Model for given paper tickets."""
+
+    paid = BooleanField(default=False)
+
+
 class Ticket(Model):
     """A ticket in a certain price category and part of a certain order."""
 
@@ -217,3 +229,39 @@ class Ticket(Model):
                 'id': self.id,
                 'code': self.code,
             }))
+
+
+class Poster(Model):
+    """Model for posters hung in the city, uses Google Maps."""
+
+    latitude = FloatField()
+    longitude = FloatField()
+    hanging_date = DateTimeField()
+    production = ForeignKey(Production, on_delete=models.CASCADE)
+    location_name = CharField(max_length=400, blank=True)
+    count = PositiveSmallIntegerField(default=1)
+    hung_by = ManyToManyField(get_user_model(), blank=True,
+                              related_name='hung_posters')
+    entered_by = ForeignKey(get_user_model(), null=True, blank=True,
+                            related_name='entered_posters',
+                            on_delete=models.SET_NULL)
+    entered_on = DateTimeField(null=True, blank=True)
+    remarks = TextField(blank=True)
+
+    @property
+    def hangmen_as_string(self):
+        """Information field."""
+        hangmen = [str(self.entered_by)] + [str(accomplice)
+                                            for accomplice
+                                            in list(self.hung_by.all())]
+        return ", ".join(hangmen)
+
+    def __str__(self):
+        """Display field."""
+        if self.count > 1:
+            return "{} posters aan {} door {}".format(self.count,
+                                                      self.location_name,
+                                                      self.hangmen_as_string)
+        else:
+            return "Poster aan {} door {}".format(self.location_name,
+                                                  self.hangmen_as_string)

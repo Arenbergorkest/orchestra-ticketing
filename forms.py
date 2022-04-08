@@ -1,9 +1,11 @@
 """Forms for orchestra seasons."""
 
+from django.conf import settings
 from django.forms import ModelForm, Form, IntegerField, HiddenInput
 from django.utils.translation import gettext_lazy as _
 from django.utils.timezone import now
-from .models import OnlineOrder
+from django.contrib.auth import get_user_model
+from .models import OnlineOrder, Production, Poster
 
 
 class TicketsForm(Form):
@@ -23,7 +25,7 @@ class TicketsForm(Form):
         """Meta data."""
 
         model = OnlineOrder
-        exclude = ['performance', 'date', 'tickets']
+        exclude = ['performance', 'date', 'tickets', 'newsletter_signup']
         fields = ('first_name', 'last_name', 'email',
                   'payment_method', 'first_concert',
                   'marketing_feedback', 'remarks')
@@ -58,15 +60,16 @@ class OnlineOrderForm(ModelForm):
     def __init__(self, performance, *args, **kwargs):
         """Initialize the online order."""
         super(OnlineOrderForm, self).__init__(*args, **kwargs)
-        # self.fields['seller'].queryset = User.get_filter_gdpr_compliant(
-        #     is_active=True
-        # )
-        # self.fields['seller'].label = _(
-        #     "Who is your favorite alumni arenberg orchestra player?"
-        # )
-        # self.fields['payment_method'].label = _(
-        #     "How do you want to pay?"
-        # )
+        if settings.TICKETING_ENABLE_SELLER:
+            self.fields[
+                'seller'
+            ].queryset = get_user_model().objects.filter(
+                is_active=True
+            )
+            self.fields['seller'].label = _(
+                "Who is your favorite arenberg orchestra player?"
+            )
+
         self.fields['first_name'].label = _("First name")
         self.fields['last_name'].label = _("Last name")
         self.fields['email'].label = _("E-mail")
@@ -97,4 +100,22 @@ class OnlineOrderForm(ModelForm):
         exclude = ['performance', 'date', 'tickets']
         fields = ('first_name', 'last_name', 'email',
                   'first_concert', 'payment_method',
-                  'marketing_feedback', 'remarks', 'hash')
+                  'marketing_feedback', 'remarks', 'hash', 'seller',
+                  'newsletter_signup')
+
+
+class PosterForm(ModelForm):
+    """Poster form."""
+
+    def __init__(self, *args, **kwargs):
+        """Create a poster form."""
+        super(PosterForm, self).__init__(*args, **kwargs)
+        self.fields['production'].queryset = Production.objects.filter(
+            active=True)
+
+    class Meta:
+        """Meta data poster."""
+
+        model = Poster
+        fields = ['production', 'latitude', 'longitude', 'hanging_date',
+                  'location_name', 'count', 'hung_by', 'remarks']

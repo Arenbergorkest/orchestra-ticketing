@@ -7,7 +7,8 @@ from django.urls import reverse
 from django.utils.html import format_html
 from core.tools import ExportCsvMixin
 from .models import Location, PriceCategory, Production, Performance, \
-    Ticket, OnlineOrder
+    Ticket, OnlineOrder, PaperOrder, Poster
+from django.contrib.admin import widgets
 
 
 def change_active(parent, request, queryset, target_state=True,
@@ -114,17 +115,27 @@ class OnlineOrderAdmin(ModelAdmin, ExportCsvMixin):
                     'num_tickets', 'total_price', 'payed', 'set_payed')
     search_fields = ('last_name', 'first_name', 'email')
     list_filter = ('performance', 'payed', 'performance__active')
+    ordering = ('-date',)
     inlines = [
         TicketInline,
     ]
+    search_fields = ['^first_name', '^last_name', '^performance']
     actions = ['export_as_csv']
 
+    def get_queryset(self, request):
+        """Get queryset."""
+        return super(OnlineOrderAdmin, self).get_queryset(request) \
+            .prefetch_related('seller') \
+            .prefetch_related('tickets__price_category')
+
     def set_payed(self, obj):
+        """Set payed."""
         return format_html(
             "<a href='{url}'>Set Payed</a>", url=reverse(
                 'tickets:send_payed', kwargs={'id': obj.id}
             )
         )
+
 
 @admin.register(Ticket)
 class TicketAdmin(ModelAdmin):
@@ -134,3 +145,67 @@ class TicketAdmin(ModelAdmin):
     list_filter = ('order__performance', 'used')
 
 
+@admin.register(PaperOrder)
+class PaperOrderAdmin(admin.ModelAdmin):
+    """Paper orders."""
+
+    list_display = ('seller', 'performance', 'num_tickets',
+                    'total_price', 'paid', 'date')
+    list_filter = ('paid', 'performance__active', 'performance')
+    ordering = ('-date',)
+    list_per_page = 100
+    inlines = [TicketInline]
+    actions = ['make_paid', 'make_not_paid']
+
+    def get_queryset(self, request):
+        """Get queryset."""
+        return super(PaperOrderAdmin, self).get_queryset(request) \
+            .prefetch_related('seller') \
+            .prefetch_related('tickets__price_category')
+
+    def make_paid(self, request, queryset):
+        """Set payed."""
+        rows_updated = queryset.update(paid=True)
+        if rows_updated == 1:
+            message_part = "1 ticket was"
+        else:
+            message_part = "%s tickets were" % rows_updated
+        self.message_user(
+            request, "%s succesfully marked as paid." % message_part)
+
+    make_paid.short_description = _("Markeer als betaald")
+
+    def make_not_paid(self, request, queryset):
+        """Set unpayed."""
+        rows_updated = queryset.update(paid=False)
+        if rows_updated == 1:
+            message_part = "1 ticket was"
+        else:
+            message_part = "%s tickets were" % rows_updated
+        self.message_user(
+            request, "%s succesfully marked as not paid." % message_part)
+
+    make_not_paid.short_description = _("Markeer als onbetaald")
+
+
+@admin.register(Poster)
+class PosterAdmin(admin.ModelAdmin):
+    """Show posters."""
+
+    list_display = ('hanging_date', 'production', 'entered_on',
+                    'location_name', 'count', 'entered_by', 'remarks')
+    ordering = ('-entered_on',)
+    list_per_page = 100
+
+    def get_queryset(self, request):
+        """Get posters."""
+        return super(PosterAdmin, self).get_queryset(request) \
+            .prefetch_related('entered_by')
+
+    def formfield_for_manytomany(self, db_field, request=None, **kwargs):
+        """Show user widget."""
+        vertical = False
+        kwargs['widget'] = widgets.FilteredSelectMultiple(
+            db_field.verbose_name, vertical, )
+        return super(PosterAdmin, self).formfield_for_manytomany(
+            db_field, request, **kwargs)

@@ -1,7 +1,7 @@
 """Urls for user management."""
 
 from django.urls import path
-from . import views, view_stats
+from . import views, view_stats, views_postermap
 
 app_name = 'tickets'
 urlpatterns = [
@@ -31,4 +31,7 @@ urlpatterns = [
     path(r'csv/<int:id>/', view_stats.csv_export, name='csv'),
     path(r'csv/<int:id>/', view_stats.csv_export, name='csv_online'),
     path(r'csv/<int:id>/', view_stats.csv_export, name='csv_paper'),  # TODO
+
+    path(r'postermap/', views_postermap.posters, name='posters'),
+    path(r'postermap/add', views_postermap.add_poster, name='add_poster'),
 ]
