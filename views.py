@@ -56,6 +56,7 @@ def _create_order_info(order, ticket_info, performance):
         'tickets': ticket_info,
         'transfer_to': settings.TARGET_BANK_ACCOUNT,
         'order_id': order.id,
+        'order_hash': order.hash,
     }
 
 
