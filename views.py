@@ -88,6 +88,8 @@ def _send_order_email(order: OnlineOrder, ticket_info, performance):
         )
         log.info(message_plain)
 
+    return data
+
 
 # HTTP pages
 def overview(request):
@@ -154,7 +156,7 @@ def order(request, id):
         Ticket.objects.bulk_create(tickets)
 
         # Confirm & close sales if needed
-        _send_order_email(order, ticket_info, performance)
+        data = _send_order_email(order, ticket_info, performance)
         _check_soldout(performance)
 
         # Redirect
@@ -164,6 +166,10 @@ def order(request, id):
             # Required info for followup step:
             'order_id': order.id,
             'order_hash': order.hash,
+            'total_price': data['total_price'],
+            'last_name': data['last_name'],
+            'payment_method': data['payment_method'],
+            'transfer_to': data['transfer_to']
         })
     else:
         return render(request, 'ticketing/order/form.html', {
