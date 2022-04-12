@@ -70,7 +70,7 @@ def _send_order_email(order: OnlineOrder, ticket_info, performance):
     message_plain = render_to_string('ticketing/mail/order_plain.html', data)
     message_html = render_to_string('ticketing/mail/order.html', data)
     sender = (
-        "Alumni Arenbergorkest <noreply-ticketing@alumniarenbergorkest.be>"
+        "Arenbergorkest <noreply-ticketing@arenbergorkest.be>"
     )
     email = EmailMultiAlternatives(
         subject, message_plain,
@@ -216,7 +216,7 @@ def _send_order_payed(request, order: OnlineOrder, subject: str):
         message_html = render_to_string(
             'ticketing/mail/tickets.html', data)
         sender = (
-            "Alumni Arenbergorkest <noreply-ticketing@alumniarenbergorkest.be>"
+            "Arenbergorkest <noreply-ticketing@arenbergorkest.be>"
         )
         email = EmailMultiAlternatives(
             subject, message_plain,
