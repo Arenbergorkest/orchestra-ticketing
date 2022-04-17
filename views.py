@@ -442,8 +442,8 @@ def qr_reply(request):
     """Test a QR code."""
     code = request.POST.get('code', '')
     items = code.split("/")
-    id = items[-2]
-    hash_code = items[-1]
+    id = items[-3]
+    hash_code = items[-2]
     message = "Unknown (%s)" % code
     valid = False
     # TODO: Take into account unpayed tickets & clean up code!
