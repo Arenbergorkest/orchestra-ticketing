@@ -6,6 +6,7 @@ Each production having multiple performances.
 """
 
 from django.db import models
+from django.conf import settings
 from django.db.models import Model, CharField, ImageField, BooleanField, \
     ForeignKey, ManyToManyField, IntegerField, FloatField, DateTimeField, \
     TextField, EmailField, PositiveSmallIntegerField
@@ -224,7 +225,7 @@ class Ticket(Model):
     @property
     def qr_code(self):
         """QR code."""
-        return 'https://alumniarenbergorkest.be' + (
+        return settings.WEBSITE_BASE_URL + (
             reverse('tickets:qr_info', kwargs={
                 'id': self.id,
                 'code': self.code,
