@@ -2,10 +2,15 @@
 
 from django.urls import path
 from . import views, view_stats, views_postermap
+from django.views.generic import RedirectView
 
 app_name = 'tickets'
 urlpatterns = [
     path('', views.overview, name='overview'),
+    path('concerts/', RedirectView.as_view(
+        pattern_name='tickets:overview',
+        permanent=False
+    )),
     path('order/<int:id>/', views.order, name='order'),
     path('order/<int:id>/member/', views.order_paper, name='order_paper'),
     path('stats/personal/', view_stats.stats_user, name='stats_user'),
