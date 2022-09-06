@@ -2,7 +2,6 @@
 
 This repo contains the code for the ticketing of both orchestra's located in Leuven.
 
-
 ## Settings
 
 ```python
