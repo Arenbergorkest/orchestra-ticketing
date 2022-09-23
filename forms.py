@@ -3,6 +3,7 @@
 from django.forms import ModelForm, Form, IntegerField, HiddenInput
 from django.utils.translation import gettext_lazy as _
 from django.utils.timezone import now
+from django.conf import settings
 from .models import OnlineOrder
 
 
@@ -64,9 +65,6 @@ class OnlineOrderForm(ModelForm):
         # self.fields['seller'].label = _(
         #     "Who is your favorite alumni arenberg orchestra player?"
         # )
-        # self.fields['payment_method'].label = _(
-        #     "How do you want to pay?"
-        # )
         self.fields['first_name'].label = _("First name")
         self.fields['last_name'].label = _("Last name")
         self.fields['email'].label = _("E-mail")
@@ -88,6 +86,18 @@ class OnlineOrderForm(ModelForm):
             )
             self.fields['payment_method'].label = _(
                 "Your payment method will be:"
+            )
+        elif not settings.TICKETING_ALLOW_CASH:
+            orig = dict(OnlineOrder.payment_method_choices)
+            self.fields['payment_method'].choices = (
+                (OnlineOrder.TRANSFER, orig[OnlineOrder.TRANSFER]),
+            )
+            self.fields['payment_method'].label = _(
+                "Your payment method will be:"
+            )
+        else:
+            self.fields['payment_method'].label = _(
+                "How do you want to pay?"
             )
 
     class Meta:
