@@ -28,7 +28,8 @@ class TicketsForm(Form):
         exclude = ['performance', 'date', 'tickets', 'newsletter_signup']
         fields = ('first_name', 'last_name', 'email',
                   'payment_method', 'first_concert',
-                  'marketing_feedback', 'remarks')
+                  'marketing_feedback', 'remarks',
+                  'allow_newsletter')
 
     def get_total_tickets(self):
         """Get total tickets."""
@@ -81,6 +82,10 @@ class OnlineOrderForm(ModelForm):
         )
         self.fields['remarks'].label = _(
             "Do you have any remarks or special requests?"
+        )
+        self.fields['allow_newsletter'].label = _(
+            "Do you want to receive a newsletter containing "
+            "upcomming concerts?"
         )
         self.fields['hash'].widget = HiddenInput()
         # Close transfer sales
