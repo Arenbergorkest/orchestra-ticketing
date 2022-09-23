@@ -92,6 +92,18 @@ class OnlineOrderForm(ModelForm):
             self.fields['payment_method'].label = _(
                 "Your payment method will be:"
             )
+        elif not settings.TICKETING_ALLOW_CASH:
+            orig = dict(OnlineOrder.payment_method_choices)
+            self.fields['payment_method'].choices = (
+                (OnlineOrder.TRANSFER, orig[OnlineOrder.TRANSFER]),
+            )
+            self.fields['payment_method'].label = _(
+                "Your payment method will be:"
+            )
+        else:
+            self.fields['payment_method'].label = _(
+                "How do you want to pay?"
+            )
 
     class Meta:
         """Meta data."""
