@@ -5,7 +5,7 @@ from django.contrib.admin import ModelAdmin
 from django.utils.translation import gettext_lazy as _
 from django.urls import reverse
 from django.utils.html import format_html
-from core.tools import ExportCsvMixin
+from alumnisite.tools import ExportCsvMixin
 from .models import Location, PriceCategory, Production, Performance, \
     Ticket, OnlineOrder, PaperOrder, Poster
 from django.contrib.admin import widgets
