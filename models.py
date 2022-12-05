@@ -167,7 +167,7 @@ class OnlineOrder(Order):
     TRANSFER, CASH = 'transfer', 'cash'
     payment_method_choices = (
         (TRANSFER, _('By bank transfer')),
-        (CASH, _('At the register (using bancontact or payconic)'))
+        (CASH, _('At the register (using cash or payconic app)'))
     )
     payment_method = CharField(
         max_length=8, choices=payment_method_choices, default=TRANSFER)
