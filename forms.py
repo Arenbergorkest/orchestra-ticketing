@@ -28,8 +28,7 @@ class TicketsForm(Form):
         exclude = ['performance', 'date', 'tickets', 'newsletter_signup']
         fields = ('first_name', 'last_name', 'email',
                   'payment_method', 'first_concert',
-                  'marketing_feedback', 'remarks',
-                  'allow_newsletter')
+                  'marketing_feedback', 'remarks')
 
     def get_total_tickets(self):
         """Get total tickets."""
@@ -77,15 +76,16 @@ class OnlineOrderForm(ModelForm):
         self.fields['first_concert'].label = _(
             "Is this your first concert?"
         )
+        self.fields['first_concert'].widget.attrs['class'] = 'form-control'
         self.fields['marketing_feedback'].label = _(
             "How did you find us?"
         )
         self.fields['remarks'].label = _(
             "Do you have any remarks or special requests?"
         )
-        self.fields['allow_newsletter'].label = _(
-            "Do you want to receive a newsletter containing "
-            "upcomming concerts?"
+        self.fields['newsletter_signup'].label = _(
+            "I want to receive a newsletter containing "
+            "information on upcoming concerts."
         )
         self.fields['hash'].widget = HiddenInput()
         # Close transfer sales
@@ -110,15 +110,22 @@ class OnlineOrderForm(ModelForm):
                 "How do you want to pay?"
             )
 
+        self.fields['payment_method'].widget.attrs['class'] = 'form-control'
+
     class Meta:
         """Meta data."""
 
         model = OnlineOrder
         exclude = ['performance', 'date', 'tickets']
-        fields = ('first_name', 'last_name', 'email',
+        fields = ['first_name', 'last_name', 'email',
                   'first_concert', 'payment_method',
-                  'marketing_feedback', 'remarks', 'hash', 'seller',
-                  'newsletter_signup')
+                  'marketing_feedback', 'remarks', 'hash',
+                  'newsletter_signup']
+
+if settings.TICKETING_ENABLE_SELLER:
+    OnlineOrderForm.Meta.fields.append('seller')
+else:
+    OnlineOrderForm.Meta.exclude.append('seller')
 
 
 class PosterForm(ModelForm):

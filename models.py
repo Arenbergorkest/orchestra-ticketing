@@ -129,7 +129,6 @@ class Order(Model):
     remarks = TextField(blank=True, null=True)
     payed = BooleanField(default=False)
     hash = CharField(max_length=128)
-    allow_newsletter = BooleanField(default=False)
     # Extra information
     objects = InheritanceManager()
 
