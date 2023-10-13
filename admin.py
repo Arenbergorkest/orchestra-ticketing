@@ -136,8 +136,8 @@ def process_names_csv(csv_file):
             ticket.save()
             amount_processed_success += 1
 
-    summary_msg = (f"Receives {len(names)} names, processed successfully: {amount_processed_success} - "
-                   f"failed: {amount_processed_fail}")
+    summary_msg = (f"Receives {len(names)} names, tickets found and processed successfully: {amount_processed_success} "
+                   f"- names failed: {amount_processed_fail}")
     return error_msgs, summary_msg
 
 
