@@ -6,6 +6,7 @@ from django.utils.translation import gettext_lazy as _
 from django.utils.timezone import now
 from django.contrib.auth import get_user_model
 from .models import OnlineOrder, Production, Poster
+from django import forms
 
 
 class TicketsForm(Form):
@@ -119,3 +120,15 @@ class PosterForm(ModelForm):
         model = Poster
         fields = ['production', 'latitude', 'longitude', 'hanging_date',
                   'location_name', 'count', 'hung_by', 'remarks']
+
+
+class UploadPaidTicketsForm(forms.Form):
+    """
+    Paste a csv with names to process
+    structure:
+        firstName, lastName \n
+        firstName, lastName \n
+        ...
+    """
+    names = forms.CharField(widget=forms.Textarea(attrs={'name': 'body',
+                                                       'style': 'height: 10em'}))

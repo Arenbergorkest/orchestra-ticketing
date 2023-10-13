@@ -1,14 +1,16 @@
 """Admin for a orchestra season."""
-
+import pandas
 from django.contrib import admin
 from django.contrib.admin import ModelAdmin
 from django.utils.translation import gettext_lazy as _
 from django.urls import reverse
 from django.utils.html import format_html
 from core.tools import ExportCsvMixin
+from .forms import UploadPaidTicketsForm
 from .models import Location, PriceCategory, Production, Performance, \
     Ticket, OnlineOrder, PaperOrder, Poster
 from django.contrib.admin import widgets
+from io import StringIO
 
 
 def change_active(parent, request, queryset, target_state=True,
@@ -107,6 +109,38 @@ class TicketInline(admin.TabularInline):
     extra = 0
 
 
+def process_names_csv(csv_file):
+    """
+    Process a csv file for online orders
+    @param csv_file: A csv file containing names to be set to paid.
+    @return: list of names that had problems being processed and a message summarizing the done process.
+    """
+    names = pandas.read_csv(csv_file, delimiter="\t", header=None)
+    open_tickets = OnlineOrder.objects.filter(performance__production__active=True).all()
+
+    error_msgs = []
+    amount_processed_success = 0
+    amount_processed_fail = 0
+    for index, data in names.iterrows():
+        first_name = data[0]
+        last_name = data[1]
+        person_tickets = open_tickets.filter(first_name__iexact=first_name, last_name__iexact=last_name)
+        if not person_tickets.exists():
+            error_msgs.append(f"'{first_name} {last_name}' was not found to have tickets in active performances.")
+            amount_processed_fail += 1
+            continue
+        person_tickets = person_tickets.all()
+
+        for ticket in person_tickets:
+            ticket.payed = True
+            ticket.save()
+            amount_processed_success += 1
+
+    summary_msg = (f"Receives {len(names)} names, processed successfully: {amount_processed_success} - "
+                   f"failed: {amount_processed_fail}")
+    return error_msgs, summary_msg
+
+
 @admin.register(OnlineOrder)
 class OnlineOrderAdmin(ModelAdmin, ExportCsvMixin):
     """Online order."""
@@ -122,6 +156,8 @@ class OnlineOrderAdmin(ModelAdmin, ExportCsvMixin):
     search_fields = ['^first_name', '^last_name', '^performance']
     actions = ['export_as_csv']
 
+    change_list_template = "admin/csv_interface.html"
+
     def get_queryset(self, request):
         """Get queryset."""
         return super(OnlineOrderAdmin, self).get_queryset(request) \
@@ -135,6 +171,22 @@ class OnlineOrderAdmin(ModelAdmin, ExportCsvMixin):
                 'tickets:send_payed', kwargs={'id': obj.id}
             )
         )
+
+    def changelist_view(self, request, extra_context=None):
+        """
+        Custom view for csv processing
+        info found here: https://stackoverflow.com/questions/9220042/django-how-to-pass-custom-variables-to-context-to-use-in-custom-admin-template
+        """
+        extra_context = extra_context or {}
+        extra_context['uploadForm'] = UploadPaidTicketsForm()
+
+        if request.method == 'POST':
+            names_form = UploadPaidTicketsForm(request.POST)
+            if names_form.is_valid():
+                extra_context['name_problems'], extra_context['process_summary'] = process_names_csv(
+                    StringIO(names_form.cleaned_data['names']))
+
+        return super(OnlineOrderAdmin, self).changelist_view(request, extra_context=extra_context)
 
 
 @admin.register(Ticket)
