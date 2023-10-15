@@ -161,13 +161,12 @@ class OnlineOrderAdmin(ModelAdmin, ExportCsvMixin):
 
     list_display = ('id', 'last_name', 'first_name', 'performance',
                     'num_tickets', 'total_price', 'payed', 'set_payed')
-    search_fields = ('last_name', 'first_name', 'email')
     list_filter = ('performance', 'payed', 'performance__active')
     ordering = ('-date',)
     inlines = [
         TicketInline,
     ]
-    search_fields = ['^first_name', '^last_name', '^performance']
+    search_fields = ['^first_name', '^last_name', '^email', '^performance__production__name']
     actions = ['export_as_csv']
 
     change_list_template = "admin/csv_interface.html"
