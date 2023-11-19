@@ -1,16 +1,18 @@
 """Admin for a orchestra season."""
-import pandas
+import csv
+from io import StringIO
+
 from django.contrib import admin
 from django.contrib.admin import ModelAdmin
-from django.utils.translation import gettext_lazy as _
+from django.contrib.admin import widgets
 from django.urls import reverse
 from django.utils.html import format_html
+from django.utils.translation import gettext_lazy as _
+
 from core.tools import ExportCsvMixin
 from .forms import UploadPaidTicketsForm
 from .models import Location, PriceCategory, Production, Performance, \
     Ticket, OnlineOrder, PaperOrder, Poster
-from django.contrib.admin import widgets
-from io import StringIO
 
 
 def change_active(parent, request, queryset, target_state=True,
@@ -109,29 +111,35 @@ class TicketInline(admin.TabularInline):
     extra = 0
 
 
-def process_names_csv(csv_file):
+def process_names_csv(request, csv_file):
     """
     Process a csv file for online orders
+    @param request
     @param csv_file: A csv file containing names to be set to paid.
     @return: list of names that had problems being processed and a message summarizing the done process.
     """
-    names = pandas.read_csv(csv_file, delimiter="\t", header=None)
+    names = []
+
+    csv_reader = csv.reader(csv_file, delimiter="\t")
+    for index, data in enumerate(csv_reader):
+        names.append(data)
+
     open_orders = OnlineOrder.objects.filter(performance__production__active=True).all()
 
     error_msgs = []
     amount_processed_success = 0
     amount_processed_fail = 0
-    for index, data in names.iterrows():
+    for data in names:
         first_name = data[0]
         last_name = data[1]
-        person_tickets = open_orders.filter(first_name__iexact=first_name, last_name__iexact=last_name)
-        if not person_tickets.exists():
+        person_orders = open_orders.filter(first_name__iexact=first_name, last_name__iexact=last_name)
+        if not person_orders.exists():
             error_msgs.append(f"'{first_name} {last_name}' was not found to have tickets in active performances.")
             amount_processed_fail += 1
             continue
-        person_tickets = person_tickets.all()
+        person_orders = person_orders.all()
 
-        for ticket in person_tickets:
+        for ticket in person_orders:
             ticket.payed = True
             ticket.save()
             amount_processed_success += 1
@@ -184,6 +192,7 @@ class OnlineOrderAdmin(ModelAdmin, ExportCsvMixin):
             names_form = UploadPaidTicketsForm(request.POST)
             if names_form.is_valid():
                 extra_context['name_problems'], extra_context['process_summary'] = process_names_csv(
+                    request,
                     StringIO(names_form.cleaned_data['names']))
 
         return super(OnlineOrderAdmin, self).changelist_view(request, extra_context=extra_context)
