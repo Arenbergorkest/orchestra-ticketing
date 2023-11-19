@@ -116,7 +116,7 @@ def process_names_csv(csv_file):
     @return: list of names that had problems being processed and a message summarizing the done process.
     """
     names = pandas.read_csv(csv_file, delimiter="\t", header=None)
-    open_tickets = OnlineOrder.objects.filter(performance__production__active=True).all()
+    open_orders = OnlineOrder.objects.filter(performance__production__active=True).all()
 
     error_msgs = []
     amount_processed_success = 0
@@ -124,7 +124,7 @@ def process_names_csv(csv_file):
     for index, data in names.iterrows():
         first_name = data[0]
         last_name = data[1]
-        person_tickets = open_tickets.filter(first_name__iexact=first_name, last_name__iexact=last_name)
+        person_tickets = open_orders.filter(first_name__iexact=first_name, last_name__iexact=last_name)
         if not person_tickets.exists():
             error_msgs.append(f"'{first_name} {last_name}' was not found to have tickets in active performances.")
             amount_processed_fail += 1
