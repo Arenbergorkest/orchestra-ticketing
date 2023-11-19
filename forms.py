@@ -130,5 +130,8 @@ class UploadPaidTicketsForm(forms.Form):
         firstName, lastName \n
         ...
     """
-    names = forms.CharField(widget=forms.Textarea(attrs={'name': 'body',
-                                                       'style': 'height: 10em'}))
+    names = forms.CharField(widget=forms.Textarea(attrs={
+        'name': 'body',
+        'style': 'height: 10em'}
+    )
+    )
