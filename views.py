@@ -271,7 +271,7 @@ def order_info(request, id, code):
 @user_passes_test(lambda u: u.is_staff, login_url='accessrestricted')
 @user_passes_test(lambda u: u.is_active, login_url='inactive')
 def send_order_payed(request, id):
-    """Send that the order is payed including tickets."""
+    """set and order to "paid" and send that the order is paid including tickets."""
     try:
         order = OnlineOrder.objects.get(id=id)
     except ObjectDoesNotExist:
