@@ -5,6 +5,7 @@ from io import StringIO
 from django.contrib import admin
 from django.contrib.admin import ModelAdmin
 from django.contrib.admin import widgets
+from django.core.exceptions import ObjectDoesNotExist
 from django.urls import reverse
 from django.utils.html import format_html
 from django.utils.translation import gettext_lazy as _
@@ -13,6 +14,7 @@ from core.tools import ExportCsvMixin
 from .forms import UploadPaidTicketsForm
 from .models import Location, PriceCategory, Production, Performance, \
     Ticket, OnlineOrder, PaperOrder, Poster
+from .views import send_order_payed
 
 
 def change_active(parent, request, queryset, target_state=True,
@@ -115,7 +117,8 @@ def process_names_csv(request, csv_file):
     """
     Process a csv file for online orders
     @param request
-    @param csv_file: A csv file containing names to be set to paid.
+    @param csv_file: A csv file containing names to be set to "paid" alongside the payment id.
+                    FIRST_NAME \t LAST_NAME \t ORDER_ID
     @return: list of names that had problems being processed and a message summarizing the done process.
     """
     names = []
@@ -132,17 +135,20 @@ def process_names_csv(request, csv_file):
     for data in names:
         first_name = data[0]
         last_name = data[1]
+        order_id = data[2]
         person_orders = open_orders.filter(first_name__iexact=first_name, last_name__iexact=last_name)
         if not person_orders.exists():
             error_msgs.append(f"'{first_name} {last_name}' was not found to have tickets in active performances.")
             amount_processed_fail += 1
             continue
-        person_orders = person_orders.all()
+        try:
+            person_order = person_orders.get(id=order_id)
+        except ObjectDoesNotExist:
+            error_msgs.append(f"'{first_name} {last_name}' with order number {order_id} does not exist.")
+            continue
 
-        for ticket in person_orders:
-            ticket.payed = True
-            ticket.save()
-            amount_processed_success += 1
+        send_order_payed(request, person_order.id)
+        amount_processed_success += 1
 
     summary_msg = (f"Receives {len(names)} names, tickets found and processed successfully: {amount_processed_success} "
                    f"- names failed: {amount_processed_fail}")
