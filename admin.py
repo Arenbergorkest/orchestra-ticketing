@@ -121,11 +121,7 @@ def process_names_csv(request, csv_file):
                     FIRST_NAME \t LAST_NAME \t ORDER_ID
     @return: list of names that had problems being processed and a message summarizing the done process.
     """
-    names = []
-
-    csv_reader = csv.reader(csv_file, delimiter="\t")
-    for index, data in enumerate(csv_reader):
-        names.append(data)
+    names = list(csv.reader(csv_file, delimiter="\t"))
 
     open_orders = OnlineOrder.objects.filter(performance__production__active=True).all()
 
