@@ -1,0 +1,37 @@
+{% extends 'admin/change_list.html' %}
+
+{% block object-tools %}
+    <p> Upload a list of names that have paid to set all of their orders to 'paid'.
+        The names should have a structure like this (seperated by 'tab'):
+    </p>
+    <pre>
+        firstName  lastName  order_id
+        firstName  lastName  order_id
+        ...
+        </pre>
+    <p>
+        This is normally automatically done by Excel or Google Spreadsheets this way.
+    </p>
+    <ul class="messagelist">
+        <li class="warning">
+            Every name will be checked against open payments in any active productions. If the same
+            name is found multiple times in 1 production or multiple times across multiple productions, all of their
+            payments will be set to 'paid'.
+        </li>
+        {% for mistake in name_problems %}
+            <li class="warning">{{ mistake }}</li>
+        {% endfor %}
+        {% if process_summary %}
+            <li>{{ process_summary }}</li>
+        {% endif %}
+    </ul>
+    <form method="POST" enctype="multipart/form-data">
+        {% csrf_token %}
+        <div>
+            {{ uploadForm }}
+        </div>
+        <input type="hidden" name="next" value="{{ request.path }}">
+        <button type="submit">Process statements</button>
+    </form>
+    {{ block.super }}
+{% endblock %}

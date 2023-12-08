@@ -1,14 +1,20 @@
 """Admin for a orchestra season."""
+import csv
+from io import StringIO
 
 from django.contrib import admin
 from django.contrib.admin import ModelAdmin
-from django.utils.translation import gettext_lazy as _
+from django.contrib.admin import widgets
+from django.core.exceptions import ObjectDoesNotExist
 from django.urls import reverse
 from django.utils.html import format_html
+from django.utils.translation import gettext_lazy as _
+
 from core.tools import ExportCsvMixin
+from .forms import UploadPaidTicketsForm
 from .models import Location, PriceCategory, Production, Performance, \
     Ticket, OnlineOrder, PaperOrder, Poster
-from django.contrib.admin import widgets
+from .views import send_order_payed
 
 
 def change_active(parent, request, queryset, target_state=True,
@@ -107,20 +113,59 @@ class TicketInline(admin.TabularInline):
     extra = 0
 
 
+def process_names_csv(request, csv_file):
+    """
+    Process a csv file for online orders
+    @param request
+    @param csv_file: A csv file containing names to be set to "paid" alongside the payment id.
+                    FIRST_NAME \t LAST_NAME \t ORDER_ID
+    @return: list of names that had problems being processed and a message summarizing the done process.
+    """
+    names = list(csv.reader(csv_file, delimiter="\t"))
+
+    open_orders = OnlineOrder.objects.filter(performance__production__active=True).all()
+
+    error_msgs = []
+    amount_processed_success = 0
+    amount_processed_fail = 0
+    for data in names:
+        first_name = data[0]
+        last_name = data[1]
+        order_id = data[2]
+        person_orders = open_orders.filter(first_name__iexact=first_name, last_name__iexact=last_name)
+        if not person_orders.exists():
+            error_msgs.append(f"'{first_name} {last_name}' was not found to have tickets in active performances.")
+            amount_processed_fail += 1
+            continue
+        try:
+            person_order = person_orders.get(id=order_id)
+        except ObjectDoesNotExist:
+            error_msgs.append(f"'{first_name} {last_name}' with order number {order_id} does not exist.")
+            continue
+
+        send_order_payed(request, person_order.id)
+        amount_processed_success += 1
+
+    summary_msg = (f"Receives {len(names)} names, tickets found and processed successfully: {amount_processed_success} "
+                   f"- names failed: {amount_processed_fail}")
+    return error_msgs, summary_msg
+
+
 @admin.register(OnlineOrder)
 class OnlineOrderAdmin(ModelAdmin, ExportCsvMixin):
     """Online order."""
 
     list_display = ('id', 'last_name', 'first_name', 'performance',
                     'num_tickets', 'total_price', 'payed', 'set_payed')
-    search_fields = ('last_name', 'first_name', 'email')
     list_filter = ('performance', 'payed', 'performance__active')
     ordering = ('-date',)
     inlines = [
         TicketInline,
     ]
-    search_fields = ['^first_name', '^last_name', '^performance']
+    search_fields = ['^first_name', '^last_name', '^email', '^performance__production__name']
     actions = ['export_as_csv']
+
+    change_list_template = "admin/csv_interface.html"
 
     def get_queryset(self, request):
         """Get queryset."""
@@ -135,6 +180,23 @@ class OnlineOrderAdmin(ModelAdmin, ExportCsvMixin):
                 'tickets:send_payed', kwargs={'id': obj.id}
             )
         )
+
+    def changelist_view(self, request, extra_context=None):
+        """
+        Custom view for csv processing
+        info found here: https://stackoverflow.com/questions/9220042/django-how-to-pass-custom-variables-to-context-to-use-in-custom-admin-template
+        """
+        extra_context = extra_context or {}
+        extra_context['uploadForm'] = UploadPaidTicketsForm()
+
+        if request.method == 'POST':
+            names_form = UploadPaidTicketsForm(request.POST)
+            if names_form.is_valid():
+                extra_context['name_problems'], extra_context['process_summary'] = process_names_csv(
+                    request,
+                    StringIO(names_form.cleaned_data['names']))
+
+        return super(OnlineOrderAdmin, self).changelist_view(request, extra_context=extra_context)
 
 
 @admin.register(Ticket)
