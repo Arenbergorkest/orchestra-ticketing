@@ -14,9 +14,7 @@
     </p>
     <ul class="messagelist">
         <li class="warning">
-            Every name will be checked against open payments in any active productions. If the same
-            name is found multiple times in 1 production or multiple times across multiple productions, all of their
-            payments will be set to 'paid'.
+            This functionality is new and not well tested. Use with caution.
         </li>
         {% for mistake in name_problems %}
             <li class="warning">{{ mistake }}</li>
