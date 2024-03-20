@@ -15,13 +15,15 @@ from django.contrib.auth.decorators import login_required, user_passes_test
 from django.urls import reverse
 from secrets import token_urlsafe
 from .models import Production, Performance, Ticket, Order, OnlineOrder, \
-        PaperOrder
+    PaperOrder
 from .forms import OnlineOrderForm, TicketsForm
 from django.views.decorators.csrf import csrf_exempt
 from weasyprint import HTML
 from django.template.loader import get_template
 from django.http import HttpResponse
 from django.shortcuts import redirect
+from .PAYnl import pay_start_transaction
+
 
 # Auxillary functions
 
@@ -127,7 +129,8 @@ def order(request, id):
     tform = TicketsForm(performance, request.POST or None)
     form = OnlineOrderForm(performance, request.POST or None,
                            initial={'hash': token_urlsafe(50)})
-    if (request.POST and form.is_valid() and tform.is_valid()):
+
+    if request.POST and form.is_valid() and tform.is_valid():
         # Create order
         order = form.save(commit=False)
         try:
@@ -160,24 +163,41 @@ def order(request, id):
         data = _send_order_email(order, ticket_info, performance)
         _check_soldout(performance)
 
+        order_price = order.total_price
+
         # Redirect
-        return render(request, 'ticketing/order/confirm.html', {
-            'performance': performance,
-            'nr_of_tickets': len(tickets),
-            # Required info for followup step:
-            'order_id': order.id,
-            'order_hash': order.hash,
-            'total_price': data['total_price'],
-            'last_name': data['last_name'],
-            'payment_method': data['payment_method'],
-            'transfer_to': data['transfer_to']
-        })
+        payment_url = pay_start_transaction(
+            order_price,
+            'John', 'Doe',
+            'sandbox@pay.nl',
+            'NL',
+            '0',
+            'http://google.com'
+        )
+        return redirect(payment_url)
+
+    elif request.POST:  # todo: fix an online order form not marking mistakes on the order form when it is not correctly filled in
+        print('form not valid')
     else:
         return render(request, 'ticketing/order/form.html', {
             "form": form,
             "tform": tform,
-            'performance': performance
+            'performance': performance,
         })
+
+
+def order_confirm(request, order_id):
+    return render(request, 'ticketing/order/confirm.html', {
+        'performance': performance,
+        'nr_of_tickets': len(tickets),
+        # Required info for followup step:
+        'order_id': order.id,
+        'order_hash': order.hash,
+        'total_price': data['total_price'],
+        'last_name': data['last_name'],
+        'payment_method': data['payment_method'],
+        'transfer_to': data['transfer_to']
+    })
 
 
 def _create_data_and_pdf_order(request, order: OnlineOrder):

@@ -84,15 +84,6 @@ class OnlineOrderForm(ModelForm):
             "Do you have any remarks or special requests?"
         )
         self.fields['hash'].widget = HiddenInput()
-        # Close transfer sales
-        if performance.close_transfer_sales < now():
-            orig = dict(OnlineOrder.payment_method_choices)
-            self.fields['payment_method'].choices = (
-                (OnlineOrder.CASH, orig[OnlineOrder.CASH]),
-            )
-            self.fields['payment_method'].label = _(
-                "Your payment method will be:"
-            )
 
     class Meta:
         """Meta data."""
@@ -100,7 +91,7 @@ class OnlineOrderForm(ModelForm):
         model = OnlineOrder
         exclude = ['performance', 'date', 'tickets']
         fields = ('first_name', 'last_name', 'email',
-                  'first_concert', 'payment_method',
+                  'first_concert', # 'payment_method',
                   'marketing_feedback', 'remarks', 'hash', 'seller',
                   'newsletter_signup')
 
