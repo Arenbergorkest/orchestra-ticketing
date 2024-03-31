@@ -22,6 +22,14 @@ from orchestra_ticketing.models import OnlineOrder
 CACHE_TTL_HRS = 6  # amounts to 120 calls/month < 1000
 
 
+# payment method ids
+class pay_method_id:
+    TEST_MODE = 4
+    BANCONTACT = 436
+    PAYCONIQ = 2379
+    PAY_BY_BANK = 2970
+
+
 def _get_ttl_hash(seconds=3600 * CACHE_TTL_HRS):
     """
     Return the same value within `seconds` time period
@@ -142,8 +150,20 @@ def pay_order_exchange_view(request):
     order = OnlineOrder.objects.get(pay_order_id=pay_order_id)
 
     # update the order according to the POST json information
-    if order.payment_status is None:
-        order.payment_method = 'x'
+    match int(data['payment_method_id']):
+        case pay_method_id.TEST_MODE:
+            order.payment_method = "test modus"
+        case pay_method_id.PAY_BY_BANK:
+            order.payment_method = "payment by bank"
+        case pay_method_id.PAYCONIQ:
+            order.payment_method = "Payconiq"
+        case pay_method_id.BANCONTACT:
+            order.payment_method = "Bankcontact"
+        case _:
+            # if the payment_method is unknown because it was enabled in the PAY settings, but not implemented in
+            # software, its method id is stored instead
+            order.payment_method = f"meth_id={_}"
+            pass
 
     order.payment_status = data['action']
     performance = order.performance
