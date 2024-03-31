@@ -5,7 +5,10 @@ This module is used to perform the PAY.nl API calls.
 
 
 """
+import hashlib
+import hmac
 import json
+import logging
 import time
 from datetime import datetime
 from functools import lru_cache
@@ -48,7 +51,7 @@ def pay_get_config(ttl_hash=_get_ttl_hash()):
 
     @return: The JSON contained in the API response.
     """
-    url = "https://rest.pay.nl/v2/services/config?serviceId=" + settings.PAY_SERVICE_ID
+    url = "https://rest.pay.nl/v2/services/config?serviceId=" + settings.PAY_SL_ID
 
     headers = {
         "accept": "application/json",
@@ -107,7 +110,7 @@ def pay_start_transaction(amount, first_name, last_name, email, language, order_
             "deliveryDate": concert_date,  # 1999-02-15
             "invoiceDate": datetime.today().strftime('%Y-%m-%d'),  # 1999-02-15
         },
-        "serviceId": settings.PAY_SERVICE_ID,
+        "serviceId": settings.PAY_SL_ID,
         "description": event_name,
         "reference": order_id,
         "returnUrl": 'https://' + host_name + return_path,
@@ -129,6 +132,38 @@ def pay_start_transaction(amount, first_name, last_name, email, language, order_
     return payment_url, status_url, pay_payment_id
 
 
+def pay_check_signature(request):
+    signature = request.headers.get('signature')
+    signature_algorithm = request.headers.get('signature-algorithm')
+    signature_keyid = request.headers.get('signature-keyid')
+    signature_method = request.headers.get('signature-method')
+    request_body = request.body
+
+    secret = settings.PAY_SL_SECRET
+
+    logger = logging.getLogger("PAY API")
+
+    if signature_method != 'HMAC':
+        logger.error(f'signature method {signature_method} not known')
+        return False
+
+    if signature_algorithm != 'sha512':
+        logger.error(f'signature algorithm {signature_algorithm} not known')
+        return False
+
+    if signature_keyid != settings.PAY_SL_ID:
+        logger.error(f'signature keyid was different from expected signature keyid')
+        return False
+
+    # perform HMAC authentication algorithm
+    signature_check = hmac.new(bytes(secret.encode()), request_body, digestmod=hashlib.sha512).hexdigest()
+    if signature_check != signature:
+        logger.error(f'signature did not match')
+        return False
+
+    return True
+
+
 @csrf_exempt
 def pay_order_exchange_view(request):
     """
@@ -144,6 +179,10 @@ def pay_order_exchange_view(request):
     # get the POST json
     data = json.loads(request.body)
     print(f"Transaction:Exchange - {data}")
+
+    # check the PAY exchange signature https://developer.pay.nl/docs/signing
+    if not pay_check_signature(request):
+        return HttpResponse('FALSE')
 
     # get the order
     pay_order_id = data['order_id']
