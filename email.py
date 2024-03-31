@@ -12,10 +12,10 @@ from weasyprint import HTML
 from orchestra_ticketing.models import OnlineOrder
 
 
-def _send_order_email(order: OnlineOrder, ticket_info, performance):
+def send_order_email(order: OnlineOrder, ticket_info, performance):
     """Send a mail to confirm the order."""
     subject = _("Bevestiging bestelling %s") % order.performance.production.name
-    data = _create_order_info(order, ticket_info, performance)
+    data = create_order_info(order, ticket_info, performance)
     message_plain = render_to_string('ticketing/mail/order_plain.html', data)
     message_html = render_to_string('ticketing/mail/order.html', data)
     sender = "Arenbergorkest <noreply-ticketing@arenbergorkest.be>"
@@ -64,13 +64,13 @@ def test_mail(request, id):
             if number > 0:
                 ticket_info.append([name, price, number])
 
-        data = _create_order_info(order, ticket_info, order.performance)
-        _send_order_email(order, ticket_info, order.performance)
+        data = create_order_info(order, ticket_info, order.performance)
+        send_order_email(order, ticket_info, order.performance)
 
     return render(request, 'ticketing/mail/order.html', data)
 
 
-def _create_order_info(order, ticket_info, performance):
+def create_order_info(order, ticket_info, performance):
     """Create order info."""
     return {
         "email": order.email,
@@ -92,10 +92,10 @@ def _create_order_info(order, ticket_info, performance):
     }
 
 
-def _send_order_payed(request, order: OnlineOrder):
+def send_order_payed(request, order: OnlineOrder):
     """Send payment information."""
     with translation.override(order.language):
-        data, pdf_file = _create_data_and_pdf_order(request, order)
+        data, pdf_file = create_data_and_pdf_order(request, order)
         message_plain = render_to_string(
             'ticketing/mail/tickets_plain.html', data)
         message_html = render_to_string(
@@ -124,7 +124,7 @@ def _send_order_payed(request, order: OnlineOrder):
         log.info(message_plain)
 
 
-def _create_data_and_pdf_order(request, order: OnlineOrder):
+def create_data_and_pdf_order(request, order: OnlineOrder):
     """Create data and pdf for an order."""
     ticket_info = []
     for ticket in order.tickets.all():

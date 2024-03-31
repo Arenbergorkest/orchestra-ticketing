@@ -15,7 +15,7 @@ from django.utils.translation import get_language
 from django.views.decorators.csrf import csrf_exempt
 
 from .PAYnl import pay_start_transaction
-from .email import _create_order_info, _send_order_payed, _create_data_and_pdf_order
+from .email import create_order_info, send_order_payed, create_data_and_pdf_order
 from .forms import OnlineOrderForm, TicketsForm
 from .models import Production, Performance, Ticket, Order, OnlineOrder, \
     PaperOrder
@@ -170,7 +170,7 @@ def order_info(request, id, code):
     for name in ticket_price:
         ticket_info.append([name, ticket_price[name], ticket_amount[name]])
 
-    data = _create_order_info(order, ticket_info, order.performance)
+    data = create_order_info(order, ticket_info, order.performance)
     data['order'] = order
     return render(request, 'ticketing/order/info.html', data)
 
@@ -187,7 +187,7 @@ def send_order_payed(request, id):
 
     order.payed = True
     order.save()
-    _send_order_payed(request, order)
+    send_order_payed(request, order)
     return render(request, 'ticketing/order/mail_send.html', {
         'id': id,
         'order': order
@@ -205,7 +205,7 @@ def download_tickets(request, id, code):
         raise Http404
 
     with translation.override(order.language):
-        data, pdf_file = _create_data_and_pdf_order(request, order)
+        data, pdf_file = create_data_and_pdf_order(request, order)
         response = HttpResponse(pdf_file, content_type='application/pdf')
         response['Content-Disposition'] = 'filename="tickets.pdf"'
 
@@ -223,7 +223,7 @@ def test_qr(request, id):
         raise Http404
 
     with translation.override(order.language):
-        data, pdf_file = _create_data_and_pdf_order(request, order)
+        data, pdf_file = create_data_and_pdf_order(request, order)
         response = HttpResponse(pdf_file, content_type='application/pdf')
         response['Content-Disposition'] = 'filename="tickets.pdf"'
 
@@ -240,7 +240,7 @@ def test_qr_mail(request, id):
     except ObjectDoesNotExist:
         raise Http404
 
-    data, pdf_file = _create_data_and_pdf_order(request, order)
+    data, pdf_file = create_data_and_pdf_order(request, order)
     return render(request, 'ticketing/mail/tickets.html', data)
 
 
