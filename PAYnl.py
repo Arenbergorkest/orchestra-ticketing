@@ -77,6 +77,59 @@ def _pay_check_signature(request):
     return True
 
 
+def _check_response_code_transaction_start(response):
+    """
+    Checks if the response code of the transaction start request is 201, as it should be.
+    Handles deviations from this.
+    https://developer.pay.nl/reference/post_transactions-1
+    @param response: The response object from the http request
+    @return: True if the status code is 201, False if error code.
+    """
+    code = response.status_code
+    logger = logging.getLogger("PAY API transaction:start")
+
+    match code:
+        case 201:  # 201 - Created
+            return True
+        case 400:
+            logger.error('Transaction:start - 400 - Bad request, see response body for more information')
+            logger.error(f'transaction body: {json.dumps(response.json(), indent=2)}', stack_info=True)
+            pass
+        case 401:
+            logger.error('Transaction:start - 401 - Unauthorized. Supplied AT code/token or SL code/secret is invalid',
+                         stack_info=True)
+            pass
+        case 403:
+            logger.error('Transaction:start - 403 - Forbidden. Supplied credentials have no rights', stack_info=True)
+            pass
+        case 404:
+            logger.error('Transaction:start - 404 - Not found', stack_info=True)
+            pass
+        case 405:
+            logger.error('Transaction:start - 405 - Used HTTP method is not allowed', stack_info=True)
+            pass
+        case 406:
+            logger.error('Transaction:start - 406 - Not acceptable. The supplied content type in the '
+                         'accept parameter in the header is not supported', stack_info=True)
+            pass
+        case 415:
+            logger.error('Transaction:start - 415 - Unsupported media. The supplied content type in '
+                         'the content-type parameter in the header is not supported', stack_info=True)
+            pass
+        case 422:
+            logger.error('Transaction:start - 422 - Unprocessable Entity, see response body for more information',
+                         stack_info=True)
+            pass
+        case 429:
+            logger.error('Transaction:start - 429 - Rate limit reached.', stack_info=True)
+            pass
+        case 500:
+            logger.error('Transaction:start - 500 - An internal error occurred', stack_info=True)
+            pass
+
+    return False
+
+
 # --- public  methods ---
 @lru_cache()
 def pay_get_config(ttl_hash=_get_ttl_hash()):
@@ -157,6 +210,9 @@ def pay_start_transaction(amount, first_name, last_name, email, language, order_
     }
 
     response = requests.post(url, json=payload, headers=headers)
+    if not _check_response_code_transaction_start(response):
+        raise requests.exceptions.RequestException(response.status_code)
+
     data = response.json()
 
     payment_url = data["paymentUrl"]
@@ -183,7 +239,7 @@ def pay_order_exchange_view(request):
     print(f"Transaction:Exchange - {data}")
 
     # check the PAY exchange signature https://developer.pay.nl/docs/signing
-    if not pay_check_signature(request):
+    if not _pay_check_signature(request):
         return HttpResponse('FALSE')
 
     # get the order
