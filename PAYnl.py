@@ -122,7 +122,7 @@ def pay_start_transaction(amount, first_name, last_name, email, language, order_
 
 
 @csrf_exempt
-def pay_exchange_view(request):
+def pay_order_exchange_view(request):
     """
     PAY calls this view to inform about updates to payment status.
     CSRF is not crucial since the post-request contains PAY signature.

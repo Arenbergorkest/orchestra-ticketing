@@ -15,7 +15,7 @@ urlpatterns = [
     )),
     path('order/<int:id>/', views.order, name='order'),
     path('order/<int:id>/member/', views.order_paper, name='order_paper'),
-    path('order/exchange', PAYnl.pay_exchange_view, name='order_exchange'),
+    path('order/exchange', PAYnl.pay_order_exchange_view, name='order_exchange'),
     path('confirmation/<int:order_id>/', views.order_confirm, name='order_confirm'),
     path('stats/personal/', view_stats.stats_user, name='stats_user'),
     path('stats/', view_stats.stats, name='stats'),
