@@ -17,8 +17,7 @@ from django.views.decorators.csrf import csrf_exempt
 from .PAYnl import pay_start_transaction
 from .email import create_order_info, send_order_payed, create_data_and_pdf_order
 from .forms import OnlineOrderForm, TicketsForm
-from .models import Production, Performance, Ticket, Order, OnlineOrder, \
-    PaperOrder
+from .models import Production, Performance, Ticket, Order, OnlineOrder, PaperOrder
 
 
 # Auxillary functions
