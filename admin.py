@@ -156,7 +156,7 @@ class OnlineOrderAdmin(ModelAdmin, ExportCsvMixin):
     """Online order."""
 
     list_display = ('id', 'last_name', 'first_name', 'performance',
-                    'num_tickets', 'total_price', 'payment_status', 'set_payed', 'pay_order_id')
+                    'num_tickets', 'total_price', 'payment_status', 'payed', 'set_payed', 'pay_order_id')
     list_filter = ('performance', 'payed', 'performance__active')
     ordering = ('-date',)
     inlines = [
