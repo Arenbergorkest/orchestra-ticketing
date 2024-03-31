@@ -247,6 +247,7 @@ def pay_order_exchange_view(request):
     order = OnlineOrder.objects.get(pay_order_id=pay_order_id)
 
     # update the order according to the POST json information
+
     match int(data['payment_method_id']):
         case PayMethodId.TEST_MODE:
             order.payment_method = "test modus"
@@ -275,11 +276,14 @@ def pay_order_exchange_view(request):
             send_order_email(order, None, performance)  # the ticket_info parameter (None) seems unused?
 
         case "cancel":
-            # todo: figure out if we want to log this and what code therefore needs to change (e.g. total ticket counting)
             pass
         case "verify":
+            logger = logging.getLogger("PAY API")
+            logger.critical(f"Verification of payment was requested. Order id: {order.id}")
             pass
         case "transaction:fraudnotice":
+            logger = logging.getLogger("PAY API")
+            logger.critical(f"Fraudnotice was received for transaction. Order id: {order.id}")
             pass
         case _:
             pass
