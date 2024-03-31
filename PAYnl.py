@@ -26,7 +26,7 @@ CACHE_TTL_HRS = 6  # amounts to 120 calls/month < 1000
 
 
 # --- payment method ids ---
-class pay_method_id:
+class PayMethodId:
     TEST_MODE = 4
     BANCONTACT = 436
     PAYCONIQ = 2379
@@ -248,13 +248,13 @@ def pay_order_exchange_view(request):
 
     # update the order according to the POST json information
     match int(data['payment_method_id']):
-        case pay_method_id.TEST_MODE:
+        case PayMethodId.TEST_MODE:
             order.payment_method = "test modus"
-        case pay_method_id.PAY_BY_BANK:
+        case PayMethodId.PAY_BY_BANK:
             order.payment_method = "payment by bank"
-        case pay_method_id.PAYCONIQ:
+        case PayMethodId.PAYCONIQ:
             order.payment_method = "Payconiq"
-        case pay_method_id.BANCONTACT:
+        case PayMethodId.BANCONTACT:
             order.payment_method = "Bankcontact"
         case _:
             # if the payment_method is unknown because it was enabled in the PAY settings, but not implemented in

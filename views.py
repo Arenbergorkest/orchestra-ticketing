@@ -142,11 +142,7 @@ def order_confirm(request, order_id):
 
     return render(request, 'ticketing/order/confirm.html', {
         # Required info for the followup step:
-        'order_id': order.id,
-        'order_hash': order.hash,
-        'total_price': order.total_price,
-        'last_name': order.last_name,
-        'payment_method': order.payment_method,
+        'order': order
     })
 
 
