@@ -14,8 +14,9 @@ import requests
 from django.conf import settings
 from django.http import HttpResponse
 from django.views.decorators.csrf import csrf_exempt
+from django.utils.translation import gettext_lazy as _
 
-from orchestra_ticketing.email import _send_order_email
+from orchestra_ticketing.email import _send_order_email, _send_order_payed
 from orchestra_ticketing.models import OnlineOrder
 
 CACHE_TTL_HRS = 6  # amounts to 120 calls/month < 1000
@@ -145,15 +146,16 @@ def pay_exchange_view(request):
         order.payment_method = 'x'
 
     order.payment_status = data['action']
+    performance = order.performance
     match order.payment_status:
         # https://docs.pay.nl/developers#exchange-calls
         case "new_ppt":
-            order.payment_status = "complete"
-            performance = order.performance
-            _send_order_email(order, None, performance)  # the ticket_info parameter (None) seems unused?
+            order.payed = True
+            _send_order_payed(request, order)
 
         case "pending":
-            pass
+            _send_order_email(order, None, performance)  # the ticket_info parameter (None) seems unused?
+
         case "cancel":
             # todo: figure out if we want to log this and what code therefore needs to change (e.g. total ticket counting)
             pass

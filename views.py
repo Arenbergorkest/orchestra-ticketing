@@ -12,7 +12,6 @@ from django.urls import reverse
 from django.utils import translation
 from django.utils.timezone import now
 from django.utils.translation import get_language
-from django.utils.translation import gettext_lazy as _
 from django.views.decorators.csrf import csrf_exempt
 
 from .PAYnl import pay_start_transaction
@@ -23,8 +22,6 @@ from .models import Production, Performance, Ticket, Order, OnlineOrder, \
 
 
 # Auxillary functions
-
-
 def _check_soldout(performance: Performance):
     """Check if a performance is sold out or not."""
     total_tickets = 0
@@ -188,12 +185,9 @@ def send_order_payed(request, id):
     except ObjectDoesNotExist:
         raise Http404
 
-    subject = _("Tickets: %s") % (
-        order.performance.production.name
-    )
     order.payed = True
     order.save()
-    _send_order_payed(request, order, subject)
+    _send_order_payed(request, order)
     return render(request, 'ticketing/order/mail_send.html', {
         'id': id,
         'order': order

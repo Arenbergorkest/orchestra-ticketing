@@ -92,7 +92,7 @@ def _create_order_info(order, ticket_info, performance):
     }
 
 
-def _send_order_payed(request, order: OnlineOrder, subject: str):
+def _send_order_payed(request, order: OnlineOrder):
     """Send payment information."""
     with translation.override(order.language):
         data, pdf_file = _create_data_and_pdf_order(request, order)
@@ -103,6 +103,7 @@ def _send_order_payed(request, order: OnlineOrder, subject: str):
         sender = (
             "Arenbergorkest <noreply-ticketing@arenbergorkest.be>"
         )
+        subject = _("Betaalbevestiging %s") % order.performance.production.name
         email = EmailMultiAlternatives(
             subject, message_plain,
             from_email=sender,
@@ -146,5 +147,6 @@ def _create_data_and_pdf_order(request, order: OnlineOrder):
     html_template = get_template('ticketing/mail/tickets_pdf.html')
     pdf_file = HTML(
         string=html_template.render(data),
-        base_url=request.build_absolute_uri()).write_pdf()
+        base_url=request.build_absolute_uri()
+    ).write_pdf()
     return data, pdf_file
