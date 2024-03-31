@@ -126,8 +126,6 @@ def order(request, id):
 
         return redirect(payment_url)
 
-    elif request.POST:  # todo: fix an online order form not marking mistakes on the order form when it is not correctly filled in
-        print('form not valid')
     else:
         return render(request, 'ticketing/order/form.html', {
             "form": form,
