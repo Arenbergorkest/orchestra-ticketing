@@ -15,7 +15,8 @@ from django.utils.translation import get_language
 from django.views.decorators.csrf import csrf_exempt
 
 from .PAYnl import pay_start_transaction
-from .email import create_order_info, send_order_payed, create_data_and_pdf_order
+from .email import create_order_info, create_data_and_pdf_order
+from .email import send_order_payed as _send_order_payed
 from .forms import OnlineOrderForm, TicketsForm
 from .models import Production, Performance, Ticket, Order, OnlineOrder, PaperOrder
 
@@ -186,7 +187,7 @@ def send_order_payed(request, id):
 
     order.payed = True
     order.save()
-    send_order_payed(request, order)
+    _send_order_payed(request, order)
     return render(request, 'ticketing/order/mail_send.html', {
         'id': id,
         'order': order
