@@ -268,6 +268,7 @@ def pay_order_exchange_view(request):
         # https://docs.pay.nl/developers#exchange-calls
         case "new_ppt":
             order.payed = True
+            order.save()
             send_order_payed(request, order)
 
         case "pending":
