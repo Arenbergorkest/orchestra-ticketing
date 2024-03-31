@@ -27,6 +27,10 @@ def _check_soldout(performance: Performance):
     total_tickets = 0
     performance_object_orders = Order.objects.filter(performance=performance)
     for order in performance_object_orders:
+        if type(order) is OnlineOrder:
+            online_order = OnlineOrder(order)
+            if online_order.payment_status == 'cancel':
+                continue
         total_tickets += order.num_tickets
 
     if total_tickets >= performance.seats:
