@@ -25,7 +25,7 @@ from orchestra_ticketing.models import OnlineOrder
 CACHE_TTL_HRS = 6  # amounts to 120 calls/month < 1000
 
 
-# payment method ids
+# --- payment method ids ---
 class pay_method_id:
     TEST_MODE = 4
     BANCONTACT = 436
@@ -33,6 +33,7 @@ class pay_method_id:
     PAY_BY_BANK = 2970
 
 
+# --- private helper methods ---
 def _get_ttl_hash(seconds=3600 * CACHE_TTL_HRS):
     """
     Return the same value within `seconds` time period
@@ -44,6 +45,39 @@ def _get_ttl_hash(seconds=3600 * CACHE_TTL_HRS):
     return round(time.time() / seconds)
 
 
+def _pay_check_signature(request):
+    signature = request.headers.get('signature')
+    signature_algorithm = request.headers.get('signature-algorithm')
+    signature_keyid = request.headers.get('signature-keyid')
+    signature_method = request.headers.get('signature-method')
+    request_body = request.body
+
+    secret = settings.PAY_SL_SECRET
+
+    logger = logging.getLogger("PAY API")
+
+    if signature_method != 'HMAC':
+        logger.error(f'signature method {signature_method} not known')
+        return False
+
+    if signature_algorithm != 'sha512':
+        logger.error(f'signature algorithm {signature_algorithm} not known')
+        return False
+
+    if signature_keyid != settings.PAY_SL_ID:
+        logger.error(f'signature keyid was different from expected signature keyid')
+        return False
+
+    # perform HMAC authentication algorithm
+    signature_check = hmac.new(bytes(secret.encode()), request_body, digestmod=hashlib.sha512).hexdigest()
+    if signature_check != signature:
+        logger.error(f'signature did not match')
+        return False
+
+    return True
+
+
+# --- public  methods ---
 @lru_cache()
 def pay_get_config(ttl_hash=_get_ttl_hash()):
     """
@@ -130,38 +164,6 @@ def pay_start_transaction(amount, first_name, last_name, email, language, order_
     pay_payment_id = data["orderId"]
 
     return payment_url, status_url, pay_payment_id
-
-
-def pay_check_signature(request):
-    signature = request.headers.get('signature')
-    signature_algorithm = request.headers.get('signature-algorithm')
-    signature_keyid = request.headers.get('signature-keyid')
-    signature_method = request.headers.get('signature-method')
-    request_body = request.body
-
-    secret = settings.PAY_SL_SECRET
-
-    logger = logging.getLogger("PAY API")
-
-    if signature_method != 'HMAC':
-        logger.error(f'signature method {signature_method} not known')
-        return False
-
-    if signature_algorithm != 'sha512':
-        logger.error(f'signature algorithm {signature_algorithm} not known')
-        return False
-
-    if signature_keyid != settings.PAY_SL_ID:
-        logger.error(f'signature keyid was different from expected signature keyid')
-        return False
-
-    # perform HMAC authentication algorithm
-    signature_check = hmac.new(bytes(secret.encode()), request_body, digestmod=hashlib.sha512).hexdigest()
-    if signature_check != signature:
-        logger.error(f'signature did not match')
-        return False
-
-    return True
 
 
 @csrf_exempt
