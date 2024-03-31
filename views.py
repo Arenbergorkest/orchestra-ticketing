@@ -1,28 +1,29 @@
 """Overview of views."""
-
-from django.http import JsonResponse
-from django.shortcuts import render
-from django.http import Http404, HttpResponseRedirect
-from django.utils.timezone import now
-from django.template.loader import render_to_string
-from django.utils import translation
-from django.conf import settings
-from django.core.mail import EmailMultiAlternatives
-from django.utils.translation import gettext_lazy as _
-from django.utils.translation import get_language
-from django.core.exceptions import ObjectDoesNotExist
-from django.contrib.auth.decorators import login_required, user_passes_test
-from django.urls import reverse
 from secrets import token_urlsafe
-from .models import Production, Performance, Ticket, Order, OnlineOrder, \
-    PaperOrder
-from .forms import OnlineOrderForm, TicketsForm
+
+from django.conf import settings
+from django.contrib.auth.decorators import login_required, user_passes_test
+from django.core.exceptions import ObjectDoesNotExist
+from django.core.mail import EmailMultiAlternatives
+from django.http import Http404, HttpResponseRedirect
+from django.http import HttpResponse
+from django.http import JsonResponse
+from django.shortcuts import redirect
+from django.shortcuts import render
+from django.template.loader import get_template
+from django.template.loader import render_to_string
+from django.urls import reverse
+from django.utils import translation
+from django.utils.timezone import now
+from django.utils.translation import get_language
+from django.utils.translation import gettext_lazy as _
 from django.views.decorators.csrf import csrf_exempt
 from weasyprint import HTML
-from django.template.loader import get_template
-from django.http import HttpResponse
-from django.shortcuts import redirect
+
 from .PAYnl import pay_start_transaction
+from .forms import OnlineOrderForm, TicketsForm
+from .models import Production, Performance, Ticket, Order, OnlineOrder, \
+    PaperOrder
 
 
 # Auxillary functions
@@ -159,21 +160,27 @@ def order(request, id):
 
         Ticket.objects.bulk_create(tickets)
 
-        # Confirm & close sales if needed
-        data = _send_order_email(order, ticket_info, performance)
+        # Close sales if needed
         _check_soldout(performance)
 
         order_price = order.total_price
 
         # Redirect
-        payment_url = pay_start_transaction(
-            order_price,
-            'John', 'Doe',
-            'sandbox@pay.nl',
-            'NL',
-            '0',
-            'http://google.com'
-        )
+        payment_url, status_url, pay_order_id = pay_start_transaction(order_price,
+                                                                      order.first_name, order.last_name,
+                                                                      order.email,
+                                                                      request.LANGUAGE_CODE, order.id,
+                                                                      # todo: fix bug where language code seems to be EN all the time
+                                                                      reverse("tickets:order_confirm",
+                                                                              args=[order.pk]),
+                                                                      reverse('tickets:order_exchange'),
+                                                                      request.get_host())
+        # todo: add concert_date to method call
+        # todo: add event name to method call
+
+        order.pay_order_id = pay_order_id
+        order.save()
+
         return redirect(payment_url)
 
     elif request.POST:  # todo: fix an online order form not marking mistakes on the order form when it is not correctly filled in
@@ -187,16 +194,16 @@ def order(request, id):
 
 
 def order_confirm(request, order_id):
+    # todo: capture orderId=2404510245X251e7&orderStatusId=100&paymentSessionId=2404510245
+    order = OnlineOrder.objects.get(id=order_id)
+
     return render(request, 'ticketing/order/confirm.html', {
-        'performance': performance,
-        'nr_of_tickets': len(tickets),
-        # Required info for followup step:
+        # Required info for the followup step:
         'order_id': order.id,
         'order_hash': order.hash,
-        'total_price': data['total_price'],
-        'last_name': data['last_name'],
-        'payment_method': data['payment_method'],
-        'transfer_to': data['transfer_to']
+        'total_price': order.total_price,
+        'last_name': order.last_name,
+        'payment_method': order.payment_method,
     })
 
 

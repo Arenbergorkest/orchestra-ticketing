@@ -5,11 +5,18 @@ This module is used to perform the PAY.nl API calls.
 
 
 """
+import json
 import time
+from datetime import datetime
+from functools import lru_cache
+
 import requests
 from django.conf import settings
-from functools import lru_cache
-import json
+from django.http import HttpResponse
+from django.views.decorators.csrf import csrf_exempt
+
+from orchestra_ticketing.models import OnlineOrder
+from orchestra_ticketing.views import _send_order_email
 
 CACHE_TTL_HRS = 6  # amounts to 120 calls/month < 1000
 
@@ -50,14 +57,16 @@ def pay_get_config(ttl_hash=_get_ttl_hash()):
     return response.status_code, json
 
 
-def pay_start_transaction(amount, first_name, last_name, email, language, order_id,
-                          return_url, concert_date=None, event_name=None):
+def pay_start_transaction(amount, first_name, last_name, email, language, order_id, return_path, exchange_path,
+                          host_name, concert_date=None, event_name=None):
     """
     Performs the Transaction:create API call from PAY.
     https://developer.pay.nl/reference/post_transactions-1
     Info about requirements from PAY for (concert) tickets
     https://docs.pay.nl/developers?language=en#mandatory-data-ticketing
-    @param return_url: the URL to return to after the user completed the transaction
+    @param exchange_path: path to the view for exchange calls - see pay.nl api documentation
+    @param host_name: the hostname of the return and exchange urls. This is to be found with request.get_host() and allows for development using ngrok
+    @param return_path: path of the view to return to after the user completed the transaction
     @param order_id: reference to the order
     @param event_name: name of the event (production) - required for tickets
     @param concert_date: date of the performance - required for tickets
@@ -65,14 +74,19 @@ def pay_start_transaction(amount, first_name, last_name, email, language, order_
     @param email: client order
     @param last_name: client first name
     @param first_name: client last name
-    @param amount: the value of the transaction
-    @return: The payment URL for the end user
+    @param amount: the value of the transaction in €
+    @return:
+        The payment URL for the end user,
+        The status URL that reports the status of the payment,
+        The payment id from PAY
     """
     url = "https://rest.pay.nl/v2/transactions"
 
     payload = {
-        "amount": {"value": amount},
-        "integration": {"testMode": True},  # todo: make this not hard coded
+        "amount": {"value": amount * 100},  # api expects amount in cents
+        "integration": {
+            "testMode": True if settings.DEVELOPPING else False
+        },
         "customer": {
             "firstName": first_name,  # John
             "lastName": last_name,  # Doe
@@ -82,15 +96,13 @@ def pay_start_transaction(amount, first_name, last_name, email, language, order_
         "order": {
             "countryCode": "BE",
             "deliveryDate": concert_date,  # 1999-02-15
-            "invoiceDate": "Today"  # 1999-02-15 todo
+            "invoiceDate": datetime.today().strftime('%Y-%m-%d'),  # 1999-02-15
         },
         "serviceId": settings.PAY_SERVICE_ID,
         "description": event_name,
         "reference": order_id,
-        # "returnUrl": return_url,
-        "returnUrl": "https://arenbergorkest.be",
-        "exchangeUrl": "https://demo.pay.nl/exchange.php"
-
+        "returnUrl": 'https://' + host_name + return_path,
+        "exchangeUrl": 'https://' + host_name + exchange_path
     }
     headers = {
         "accept": "application/json",
@@ -103,48 +115,54 @@ def pay_start_transaction(amount, first_name, last_name, email, language, order_
 
     payment_url = data["paymentUrl"]
     status_url = data["statusUrl"]
-    pay_payment_id = data["id"]
+    pay_payment_id = data["orderId"]
 
-    return payment_url
+    return payment_url, status_url, pay_payment_id
 
 
-'''
-{
-  "id": "EX-0385-8552-1121",
-  "serviceId": "SL-7045-9043",
-  "description": "should contain name of event",
-  "reference": "ThisIsReferenceAlphaNumeric",
-  "manualTransferCode": "9000 0023 9316 6561",
-  "orderId": "2393166561Xee7c8",
-  "paymentUrl": "https://api.pay.nl/controllers/payments/issuer.php?orderId=2393166561Xee7c8&entranceCode=3781c93e1375cf0b1d20ce0d37387d5e5bc6f97e&profileID=613&lang=NL",
-  "statusUrl": "https://rest.pay.nl/v2/transactions/EX-0385-8552-1121/status",
-  "orderStatusUrl": null,
-  "amount": {
-    "value": 10,
-    "currency": "EUR"
-  },
-  "uuid": "ac387d5e-5bc6-f97e-2393-166561aee7c8",
-  "hash": null,
-  "cancelUrl": null,
-  "expire": 1713381385,
-  "expiresAt": "2024-04-17T21:16:25+02:00",
-  "created": "2024-03-20T21:16:25+01:00",
-  "createdAt": "2024-03-20T21:16:25+01:00",
-  "createdBy": "AT-0095-4198",
-  "modified": "2024-03-20T21:16:25+01:00",
-  "modifiedAt": "2024-03-20T21:16:25+01:00",
-  "modifiedBy": "AT-0095-4198",
-  "_links": [
-    {
-      "href": "/transactions/EX-0385-8552-1121",
-      "rel": "details",
-      "type": "GET"
-    },
-    {
-      "href": "/transactions",
-      "rel": "self",
-      "type": "POST"
-    }
-  ]
-}
-'''
+@csrf_exempt
+def pay_exchange_view(request):
+    """
+    PAY calls this view to inform about updates to payment status.
+    CSRF is not crucial since the post-request contains PAY signature.
+    CSRF caused issues.
+    @param request:
+    @return:
+    """
+    if request.method != 'POST':
+        return HttpResponse('FALSE')
+
+    # get the POST json
+    data = json.loads(request.body)
+    print(f"Transaction:Exchange - {data}")
+
+    # get the order
+    pay_order_id = data['order_id']
+    order = OnlineOrder.objects.get(pay_order_id=pay_order_id)
+
+    # update the order according to the POST json information
+    if order.payment_status is None:
+        order.payment_method = 'x'
+
+    order.payment_status = data['action']
+    match order.payment_status:
+        # https://docs.pay.nl/developers#exchange-calls
+        case "new_ppt":
+            order.payment_status = "complete"
+            performance = order.performance
+            _send_order_email(order, None, performance)  # the ticket_info parameter seems unused?
+
+        case "pending":
+            pass
+        case "cancel":
+            # todo: figure out if we want to log this and what code therefore needs to change (e.g. total ticket counting)
+            pass
+        case "verify":
+            pass
+        case "transaction:fraudnotice":
+            pass
+        case _:
+            pass
+    order.save()
+
+    return HttpResponse('TRUE')

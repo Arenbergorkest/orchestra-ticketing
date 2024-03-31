@@ -163,32 +163,22 @@ class OnlineOrder(Order):
     first_name = CharField(max_length=75)
     last_name = CharField(max_length=75)
     email = EmailField()
-    TRANSFER, CASH = 'transfer', 'cash'
-    payment_method_choices = (
-        (TRANSFER, _('By bank transfer')),
-        (CASH, _('At the register (using bancontact or payconic)'))
-    )
-    payment_method = CharField(
-        max_length=8, choices=payment_method_choices, default=TRANSFER)
     # BooleanField is allowed to be null
     first_concert = BooleanField(null=True, choices=CHOICES)
     marketing_feedback = CharField(max_length=120, null=True, blank=True)
     language = CharField(max_length=5, default='nl')
     newsletter_signup = BooleanField()
 
+    # for PAY
+    payment_status = models.CharField(max_length=20, blank=True, null=True)
+    pay_order_id = models.CharField(max_length=16, blank=True, null=True)
+    payment_method = models.CharField(max_length=20, blank=True,
+                                      null=True)  # build in a check that this is filled in later?
+
     @property
     def payment_message(self):
         """Payment message."""
         return "Tickets %s - %d" % (self.last_name, self.id)
-
-    @property
-    def payment_method_str(self):
-        """Payment method string."""
-        for option, text in OnlineOrder.payment_method_choices:
-            if option == self.payment_method:
-                return text
-
-        return OnlineOrder.payment_method_choices[0][1]
 
     def __str__(self):
         """Represent an online order."""
