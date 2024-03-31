@@ -15,8 +15,8 @@ from django.conf import settings
 from django.http import HttpResponse
 from django.views.decorators.csrf import csrf_exempt
 
+from orchestra_ticketing.email import _send_order_email
 from orchestra_ticketing.models import OnlineOrder
-from orchestra_ticketing.views import _send_order_email
 
 CACHE_TTL_HRS = 6  # amounts to 120 calls/month < 1000
 
@@ -150,7 +150,7 @@ def pay_exchange_view(request):
         case "new_ppt":
             order.payment_status = "complete"
             performance = order.performance
-            _send_order_email(order, None, performance)  # the ticket_info parameter seems unused?
+            _send_order_email(order, None, performance)  # the ticket_info parameter (None) seems unused?
 
         case "pending":
             pass

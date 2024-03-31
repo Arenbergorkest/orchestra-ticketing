@@ -1,6 +1,8 @@
 """Urls for user management."""
 
 from django.urls import path
+
+import orchestra_ticketing.email
 from . import views, view_stats, views_postermap, PAYnl
 from django.views.generic import RedirectView
 
@@ -30,7 +32,7 @@ urlpatterns = [
          views.download_tickets, name='order_download'),
 
     # Test mails
-    path(r'test/<int:id>/', views.test_mail, name='test_mail'),
+    path(r'test/<int:id>/', orchestra_ticketing.email.test_mail, name='test_mail'),
     path(r'test/<int:id>/qr', views.test_qr, name='test_qr'),
     path(r'test/<int:id>/qrmail', views.test_qr_mail, name='test_qr_mail'),
 
