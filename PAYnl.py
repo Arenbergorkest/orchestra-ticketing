@@ -54,7 +54,7 @@ def _pay_check_signature(request):
 
     secret = settings.PAY_SL_SECRET
 
-    logger = logging.getLogger("PAY API")
+    logger = logging.getLogger(__name__)
 
     if signature_method != 'HMAC':
         logger.error(f'signature method {signature_method} not known')
@@ -142,7 +142,7 @@ def pay_get_config(ttl_hash=_get_ttl_hash()):
 
     headers = {
         "accept": "application/json",
-        "authorization": "Basic " + settings.PAY_AUTH,
+        "authorization": "Basic " + settings.PAY_AUTH_KEY,
     }
 
     response = requests.get(url, headers=headers)
@@ -206,7 +206,7 @@ def pay_start_transaction(amount, first_name, last_name, email, language, order_
     headers = {
         "accept": "application/json",
         "content-type": "application/json",
-        "authorization": "Basic " + settings.PAY_AUTH,
+        "authorization": "Basic " + settings.PAY_AUTH_KEY,
     }
 
     response = requests.post(url, json=payload, headers=headers)
