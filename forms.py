@@ -50,7 +50,7 @@ class TicketsForm(Form):
         super(TicketsForm, self).is_valid()
         if self.get_total_tickets() == 0:
             self.add_error(None, _(
-                "To place an order, you have to order at least one ticket."
+                "Om een bestelling te plaatsen moet u tenminste 1 ticket bestellen."
             ))
         return self.is_bound and not self.errors
 
