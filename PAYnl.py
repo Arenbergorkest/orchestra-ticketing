@@ -151,8 +151,6 @@ def pay_get_config(ttl_hash=_get_ttl_hash()):
     if response.status_code == 200:
         json = response.json()
 
-    # todo: if status code 200 was not received, e-mail the webmasters. The PAY. service could be down.
-
     return response.status_code, json
 
 
@@ -194,7 +192,7 @@ def pay_start_transaction(amount, first_name, last_name, email, language, order_
         },
         "order": {
             "countryCode": "BE",
-            "deliveryDate": concert_date,  # 1999-02-15
+            "deliveryDate": concert_date.strftime('%Y-%m-%d'),  # 1999-02-15
             "invoiceDate": datetime.today().strftime('%Y-%m-%d'),  # 1999-02-15
         },
         "serviceId": settings.PAY_SL_ID,

@@ -112,14 +112,13 @@ def order(request, id):
         payment_url, status_url, pay_order_id = pay_start_transaction(order_price,
                                                                       order.first_name, order.last_name,
                                                                       order.email,
-                                                                      request.LANGUAGE_CODE, order.id,
-                                                                      # todo: fix bug where language code seems to be EN all the time
+                                                                      get_language(), order.id,
                                                                       reverse("tickets:order_confirm",
                                                                               args=[order.pk]),
                                                                       reverse('tickets:order_exchange'),
-                                                                      request.get_host())
-        # todo: add concert_date to method call
-        # todo: add event name to method call
+                                                                      request.get_host(),
+                                                                      concert_date=order.performance.date,
+                                                                      event_name=order.performance.production.name)
 
         order.pay_order_id = pay_order_id
         order.save()
@@ -135,7 +134,6 @@ def order(request, id):
 
 
 def order_confirm(request, order_id):
-    # todo: capture orderId=2404510245X251e7&orderStatusId=100&paymentSessionId=2404510245
     order = OnlineOrder.objects.get(id=order_id)
 
     return render(request, 'ticketing/order/confirm.html', {
@@ -267,7 +265,7 @@ def order_paper(request, id):
                 tickets.append(Ticket.objects.create(
                     price_category=categ, order=paper_order
                 ))
-        # TODO: Give usefull response with ticket count
+        # TODO: Give useful response with ticket count
         return HttpResponseRedirect(reverse('tickets:stats_user'))
     return render(request, 'ticketing/order/form_paper.html',
                   {'tform': tform, "performance": str(performance)})
@@ -318,7 +316,7 @@ def qr_reply(request):
     hash_code = items[-2]
     message = "Unknown (%s)" % code
     valid = False
-    # TODO: Take into account unpayed tickets & clean up code!
+    # TODO: Take into account unpaid tickets & clean up code!
     # Use an enumerator to assign the state!
     try:
         ticket = Ticket.objects.get(id=id)
