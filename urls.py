@@ -3,7 +3,8 @@
 from django.urls import path
 
 import orchestra_ticketing.email
-from . import views, view_stats, views_postermap, PAYnl
+from . import views, view_stats, views_postermap
+from payments import PAYnl
 from django.views.generic import RedirectView
 
 app_name = 'tickets'

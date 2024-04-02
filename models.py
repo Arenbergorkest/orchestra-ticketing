@@ -5,19 +5,22 @@ A orchestra season exist of one or more productions.
 Each production having multiple performances.
 """
 
-from django.db import models
+from random import choices
+from string import ascii_lowercase
+
 from django.conf import settings
+from django.contrib.auth import get_user_model
+from django.db import models
 from django.db.models import Model, CharField, ImageField, BooleanField, \
     ForeignKey, ManyToManyField, IntegerField, FloatField, DateTimeField, \
-    TextField, EmailField, PositiveSmallIntegerField
+    TextField, EmailField, PositiveSmallIntegerField, OneToOneField
 from django.urls import reverse
-from django.utils.translation import gettext_lazy as _
-from django.utils.timezone import get_current_timezone, now
 from django.utils import timezone
+from django.utils.timezone import get_current_timezone, now
+from django.utils.translation import gettext_lazy as _
 from model_utils.managers import InheritanceManager
-from string import ascii_lowercase
-from random import choices
-from django.contrib.auth import get_user_model
+
+from payments.models import Payment, PayPayment
 
 
 class Location(Model):
@@ -70,8 +73,7 @@ class Production(Model):
 class Performance(Model):
     """A single performance."""
 
-    production = ForeignKey(Production, related_name='performances',
-                            on_delete=models.CASCADE)
+    production = ForeignKey(Production, related_name='performances', on_delete=models.CASCADE)
     date = DateTimeField(_('Date and time of performance'))
     location = ForeignKey(Location, on_delete=models.SET_NULL, null=True)
     seats = IntegerField(help_text=_("Number of seats"), default=750)
@@ -120,17 +122,18 @@ class Performance(Model):
 class Order(Model):
     """Abstract model for an Order."""
 
-    performance = ForeignKey(
-        Performance, related_name='orders', on_delete=models.CASCADE)
+    performance = ForeignKey(Performance, related_name='orders', on_delete=models.CASCADE)
     date = DateTimeField(_("Date of order"))
+    payment = OneToOneField(Payment, on_delete=models.SET_NULL, null=True, blank=True)
     # Referred musician
-    seller = ForeignKey(get_user_model(),
-                        blank=True, null=True, on_delete=models.SET_NULL)
+    seller = ForeignKey(get_user_model(), blank=True, null=True, on_delete=models.SET_NULL)
     remarks = TextField(blank=True, null=True)
     payed = BooleanField(default=False)
     hash = CharField(max_length=128)
     # Extra information
     objects = InheritanceManager()
+    # ==> used to select child classes on query instead of the base class
+    # more info: https://django-model-utils.readthedocs.io/en/latest/managers.html#inheritancemanager
 
     @property
     def num_tickets(self):
@@ -169,12 +172,6 @@ class OnlineOrder(Order):
     language = CharField(max_length=5, default='nl')
     newsletter_signup = BooleanField()
 
-    # for PAY
-    payment_status = models.CharField(max_length=20, blank=True, null=True)
-    pay_order_id = models.CharField(max_length=16, blank=True, null=True)
-    payment_method = models.CharField(max_length=20, blank=True,
-                                      null=True)  # build in a check that this is filled in later?
-
     @property
     def payment_message(self):
         """Payment message."""
@@ -185,6 +182,11 @@ class OnlineOrder(Order):
         return "Online order by {} {} on {:%d-%m-%Y %H:%M:%S}.".format(
             self.first_name,
             self.last_name, self.date.astimezone(get_current_timezone()))
+
+    def set_paid_and_email(self, request):
+        self.payed = True
+        # send_order_payed(request, self) # TODO
+        self.save()
 
 
 def random_key():

@@ -14,7 +14,8 @@ from django.utils.timezone import now
 from django.utils.translation import get_language
 from django.views.decorators.csrf import csrf_exempt
 
-from .PAYnl import pay_start_transaction
+from payments.PAYnl import pay_start_transaction
+from payments.models import PayPayment
 from .email import create_order_info, create_data_and_pdf_order
 from .email import send_order_payed as _send_order_payed
 from .forms import OnlineOrderForm, TicketsForm
@@ -29,8 +30,9 @@ def _check_soldout(performance: Performance):
     for order in performance_object_orders:
         if type(order) is OnlineOrder:
             online_order = OnlineOrder(order)
-            if online_order.payment_status == 'cancel':
-                continue
+            if isinstance(online_order.payment, PayPayment):
+                if online_order.payment.payment_status == 'cancel':
+                    continue
         total_tickets += order.num_tickets
 
     if total_tickets >= performance.seats:
@@ -109,18 +111,18 @@ def order(request, id):
         order_price = order.total_price
 
         # Redirect
-        payment_url, status_url, pay_order_id = pay_start_transaction(order_price,
-                                                                      order.first_name, order.last_name,
-                                                                      order.email,
-                                                                      get_language(), order.id,
-                                                                      reverse("tickets:order_confirm",
-                                                                              args=[order.pk]),
-                                                                      reverse('tickets:order_exchange'),
-                                                                      request.get_host(),
-                                                                      concert_date=order.performance.date,
-                                                                      event_name=order.performance.production.name)
+        payment_url, status_url, payment = pay_start_transaction(order_price,
+                                                                 order.first_name, order.last_name,
+                                                                 order.email,
+                                                                 get_language(), order.id,
+                                                                 reverse("tickets:order_confirm",
+                                                                         args=[order.pk]),
+                                                                 reverse('tickets:order_exchange'),
+                                                                 request.get_host(),
+                                                                 concert_date=order.performance.date,
+                                                                 event_name=order.performance.production.name)
 
-        order.pay_order_id = pay_order_id
+        order.payment = payment
         order.save()
 
         return redirect(payment_url)
@@ -168,6 +170,7 @@ def order_info(request, id, code):
 
     data = create_order_info(order, ticket_info, order.performance)
     data['order'] = order
+    data['payment'] = order.payment
     return render(request, 'ticketing/order/info.html', data)
 
 

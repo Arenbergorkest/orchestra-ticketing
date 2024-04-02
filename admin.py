@@ -156,7 +156,7 @@ class OnlineOrderAdmin(ModelAdmin, ExportCsvMixin):
     """Online order."""
 
     list_display = ('id', 'last_name', 'first_name', 'performance',
-                    'num_tickets', 'total_price', 'payment_status', 'payed', 'set_payed', 'pay_order_id')
+                    'num_tickets', 'total_price', 'payed', 'set_payed', 'payment')
     list_filter = ('performance', 'payed', 'performance__active')
     ordering = ('-date',)
     inlines = [
@@ -167,7 +167,7 @@ class OnlineOrderAdmin(ModelAdmin, ExportCsvMixin):
 
     change_list_template = "admin/csv_interface.html"
 
-    readonly_fields = ['pay_order_id']
+    readonly_fields = ['payment']
 
     def get_queryset(self, request):
         """Get queryset."""

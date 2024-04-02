@@ -182,7 +182,7 @@ def csv_export(request, id):
                     category_count_dictionary[pricecategory] += 1
         next_row += list(category_count_dictionary.values())
         next_row += [online_order.num_tickets, online_order.total_price,
-                     online_order.payment_method,
+                     online_order.payment.get_payment_method_str,
                      online_order.payed,
                      bool_words.get(online_order.first_concert,
                                     online_order.first_concert),

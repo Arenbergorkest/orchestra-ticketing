@@ -1,5 +1,5 @@
 from django.test import TestCase
-from .PAYnl import *
+from payments.PAYnl import *
 
 
 # Create your tests here.
