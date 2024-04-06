@@ -5,6 +5,7 @@ from django.core.mail import EmailMultiAlternatives
 from django.http import Http404
 from django.shortcuts import render
 from django.template.loader import render_to_string, get_template
+from django.urls import reverse
 from django.utils import translation
 from django.utils.translation import gettext_lazy as _
 from weasyprint import HTML
@@ -12,10 +13,12 @@ from weasyprint import HTML
 from orchestra_ticketing.models import OnlineOrder
 
 
-def send_order_email(order: OnlineOrder, ticket_info, performance):
-    """Send a mail to confirm the order."""
+def send_order_email(order: OnlineOrder, ticket_info, performance, request):
+    """Send a mail to confirm the order.
+    """
     subject = _("Bevestiging bestelling %s") % order.performance.production.name
     data = create_order_info(order, ticket_info, performance)
+    data['order_url'] = request.get_host() + reverse('tickets:order_info', kwargs={'id': order.id, 'code': order.hash})
     message_plain = render_to_string('ticketing/mail/order_plain.html', data)
     message_html = render_to_string('ticketing/mail/order.html', data)
     sender = "Arenbergorkest <noreply-ticketing@arenbergorkest.be>"
@@ -65,7 +68,7 @@ def test_mail(request, id):
                 ticket_info.append([name, price, number])
 
         data = create_order_info(order, ticket_info, order.performance)
-        send_order_email(order, ticket_info, order.performance)
+        send_order_email(order, ticket_info, order.performance, request)
 
     return render(request, 'ticketing/mail/order.html', data)
 
