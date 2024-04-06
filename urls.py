@@ -26,8 +26,8 @@ urlpatterns = [
     path(r'qr/reply', views.qr_reply, name='qr_reply'),
     path(r'qr/info/<int:id>/<slug:code>/', views.qr_info, name='qr_info'),
 
-    # Set payed & send mail
-    path(r'order/<int:id>/payed', views.send_order_payed, name='send_payed'),
+    # Set paid & send mail
+    path(r'order/<int:id>/paid', views.send_order_paid, name='send_paid'),
     path(r'order/<int:id>/<slug:code>/', views.order_info, name='order_info'),
     path(r'order/download/<int:id>/<slug:code>/',
          views.download_tickets, name='order_download'),

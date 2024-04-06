@@ -14,7 +14,7 @@ from core.tools import ExportCsvMixin
 from .forms import UploadPaidTicketsForm
 from .models import Location, PriceCategory, Production, Performance, \
     Ticket, OnlineOrder, PaperOrder, Poster
-from .views import send_order_payed
+from .views import send_order_paid
 
 
 def change_active(parent, request, queryset, target_state=True,
@@ -143,7 +143,7 @@ def process_names_csv(request, csv_file):
             error_msgs.append(f"'{first_name} {last_name}' with order number {order_id} does not exist.")
             continue
 
-        send_order_payed(request, person_order.id)
+        send_order_paid(request, person_order.id)
         amount_processed_success += 1
 
     summary_msg = (f"Receives {len(names)} names, tickets found and processed successfully: {amount_processed_success} "
@@ -156,8 +156,8 @@ class OnlineOrderAdmin(ModelAdmin, ExportCsvMixin):
     """Online order."""
 
     list_display = ('id', 'last_name', 'first_name', 'performance',
-                    'num_tickets', 'total_price', 'payed', 'set_payed', 'payment')
-    list_filter = ('performance', 'payed', 'performance__active')
+                    'num_tickets', 'total_price', 'paid', 'set_paid', 'payment')
+    list_filter = ('performance', 'paid', 'performance__active')
     ordering = ('-date',)
     inlines = [
         TicketInline,
@@ -175,11 +175,11 @@ class OnlineOrderAdmin(ModelAdmin, ExportCsvMixin):
             .prefetch_related('seller') \
             .prefetch_related('tickets__price_category')
 
-    def set_payed(self, obj):
-        """Set payed."""
+    def set_paid(self, obj):
+        """Set paid."""
         return format_html(
-            "<a href='{url}'>Set Payed</a>", url=reverse(
-                'tickets:send_payed', kwargs={'id': obj.id}
+            "<a href='{url}'>Set Paid</a>", url=reverse(
+                'tickets:send_paid', kwargs={'id': obj.id}
             )
         )
 
@@ -228,7 +228,7 @@ class PaperOrderAdmin(admin.ModelAdmin):
             .prefetch_related('tickets__price_category')
 
     def make_paid(self, request, queryset):
-        """Set payed."""
+        """Set paid."""
         rows_updated = queryset.update(paid=True)
         if rows_updated == 1:
             message_part = "1 ticket was"
@@ -240,7 +240,7 @@ class PaperOrderAdmin(admin.ModelAdmin):
     make_paid.short_description = _("Markeer als betaald")
 
     def make_not_paid(self, request, queryset):
-        """Set unpayed."""
+        """Set unpaid."""
         rows_updated = queryset.update(paid=False)
         if rows_updated == 1:
             message_part = "1 ticket was"

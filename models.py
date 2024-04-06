@@ -128,7 +128,7 @@ class Order(Model):
     # Referred musician
     seller = ForeignKey(get_user_model(), blank=True, null=True, on_delete=models.SET_NULL)
     remarks = TextField(blank=True, null=True)
-    payed = BooleanField(default=False)
+    paid = BooleanField(default=False)
     hash = CharField(max_length=128)
     # Extra information
     objects = InheritanceManager()
@@ -184,8 +184,8 @@ class OnlineOrder(Order):
             self.last_name, self.date.astimezone(get_current_timezone()))
 
     def set_paid_and_email(self, request):
-        self.payed = True
-        # send_order_payed(request, self) # TODO
+        self.paid = True
+        # send_order_paid(request, self) # TODO
         self.save()
 
 
@@ -196,8 +196,6 @@ def random_key():
 
 class PaperOrder(Order):
     """Model for given paper tickets."""
-
-    paid = BooleanField(default=False)
 
 
 class Ticket(Model):

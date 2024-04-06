@@ -17,7 +17,7 @@ from django.views.decorators.csrf import csrf_exempt
 from payments.PAYnl import pay_start_transaction
 from payments.models import PayPayment
 from .email import create_order_info, create_data_and_pdf_order
-from .email import send_order_payed as _send_order_payed
+from .email import send_order_paid as _send_order_paid
 from .forms import OnlineOrderForm, TicketsForm
 from .models import Production, Performance, Ticket, Order, OnlineOrder, PaperOrder
 
@@ -177,16 +177,16 @@ def order_info(request, id, code):
 @login_required
 @user_passes_test(lambda u: u.is_staff, login_url='accessrestricted')
 @user_passes_test(lambda u: u.is_active, login_url='inactive')
-def send_order_payed(request, id):
+def send_order_paid(request, id):
     """set and order to "paid" and send that the order is paid including tickets."""
     try:
         order = OnlineOrder.objects.get(id=id)
     except ObjectDoesNotExist:
         raise Http404
 
-    order.payed = True
+    order.paid = True
     order.save()
-    _send_order_payed(request, order)
+    _send_order_paid(request, order)
     return render(request, 'ticketing/order/mail_send.html', {
         'id': id,
         'order': order
@@ -200,7 +200,7 @@ def download_tickets(request, id, code):
     except ObjectDoesNotExist:
         raise Http404
 
-    if order.hash != code or not order.payed:
+    if order.hash != code or not order.paid:
         raise Http404
 
     with translation.override(order.language):
