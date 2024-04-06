@@ -22,18 +22,24 @@ from .forms import OnlineOrderForm, TicketsForm
 from .models import Production, Performance, Ticket, Order, OnlineOrder, PaperOrder
 
 
+def check_ticket_cancelled(order):
+    """Check if ticket is cancelled."""
+    if type(order) is OnlineOrder:
+        online_order = OnlineOrder(order)
+        if isinstance(online_order.payment, PayPayment):
+            if online_order.payment.payment_status == 'cancel':
+                return True
+    return False
+
+
 # Auxillary functions
 def _check_soldout(performance: Performance):
     """Check if a performance is sold out or not."""
     total_tickets = 0
     performance_object_orders = Order.objects.filter(performance=performance)
     for order in performance_object_orders:
-        if type(order) is OnlineOrder:
-            online_order = OnlineOrder(order)
-            if isinstance(online_order.payment, PayPayment):
-                if online_order.payment.payment_status == 'cancel':
-                    continue
-        total_tickets += order.num_tickets
+        if not check_ticket_cancelled(order):
+            total_tickets += order.num_tickets
 
     if total_tickets >= performance.seats:
         performance.active = False

@@ -28,7 +28,7 @@ class TicketsForm(Form):
         model = OnlineOrder
         exclude = ['performance', 'date', 'tickets', 'newsletter_signup']
         fields = ('first_name', 'last_name', 'email',
-                  'payment_method', 'first_concert',
+                  'first_concert',
                   'marketing_feedback', 'remarks')
 
     def get_total_tickets(self):
