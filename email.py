@@ -92,7 +92,7 @@ def create_order_info(order, ticket_info, performance):
     }
 
 
-def send_order_payed(request, order: OnlineOrder):
+def send_order_paid(request, order: OnlineOrder):
     """Send payment information."""
     with translation.override(order.language):
         data, pdf_file = create_data_and_pdf_order(request, order)
