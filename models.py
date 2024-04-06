@@ -81,8 +81,6 @@ class Performance(Model):
     # Data for performance
     active = BooleanField(default=True)
     open_sales = DateTimeField('Start ticket sales', default=now)
-    close_transfer_sales = DateTimeField(
-        'Close transfer payment method', default=now)
     close_sales = DateTimeField('Close ticket sales', default=now)
     close_paper_sales = DateTimeField(
         'Close paper sales (by members)', default=now)
@@ -96,11 +94,6 @@ class Performance(Model):
     def is_closed_forever(self):
         """Check if it is closed forever."""
         return (not self.active or self.close_sales < timezone.now())
-
-    @property
-    def is_transfer_available(self):
-        """Check if it is closed forever."""
-        return (self.active and self.close_transfer_sales > timezone.now())
 
     @property
     def is_open(self):
@@ -166,6 +159,14 @@ class OnlineOrder(Order):
     first_name = CharField(max_length=75)
     last_name = CharField(max_length=75)
     email = EmailField()
+    # TODO: Delete in future!
+    TRANSFER, CASH = 'transfer', 'cash'
+    payment_method_choices = (
+        (TRANSFER, _('By bank transfer')),
+        (CASH, _('At the register (using bancontact or payconic)'))
+    )
+    payment_method = CharField(
+        max_length=8, choices=payment_method_choices, default=TRANSFER)
     # BooleanField is allowed to be null
     first_concert = BooleanField(null=True, choices=CHOICES)
     marketing_feedback = CharField(max_length=120, null=True, blank=True)
