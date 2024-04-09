@@ -9,7 +9,7 @@ class Migration(migrations.Migration):
         ("orchestra_ticketing", "0011_remove_paid_paperorder"),
         (
             "payments",
-            "0005_remove_payment_paid_alter_paypayment_payment_method_and_more",
+            "0001_initial_squashed_0005_remove_payment_paid_alter_paypayment_payment_method_and_more_squashed_0006_alter_paypayment_pay_order_id",
         ),
     ]
 
