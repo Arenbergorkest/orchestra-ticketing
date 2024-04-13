@@ -16,7 +16,7 @@ from django.views.decorators.csrf import csrf_exempt
 
 from payments.PAYnl import pay_start_transaction
 from payments.models import PayPayment
-from .email import create_order_info, create_data_and_pdf_order
+from .email import create_order_info, create_data_and_pdf_order, send_order_email
 from .email import send_order_paid as _send_order_paid
 from .forms import OnlineOrderForm, TicketsForm
 from .models import Production, Performance, Ticket, Order, OnlineOrder, PaperOrder
@@ -117,21 +117,23 @@ def order(request, id):
         order_price = order.total_price
 
         # Redirect
-        payment_url, status_url, payment = pay_start_transaction(order_price,
-                                                                 order.first_name, order.last_name,
-                                                                 order.email,
-                                                                 get_language(), order.id,
-                                                                 reverse("tickets:order_confirm",
-                                                                         args=[order.pk]),
-                                                                 reverse('tickets:order_exchange'),
-                                                                 request.get_host(),
-                                                                 concert_date=order.performance.date,
-                                                                 event_name=order.performance.production.name)
+        payment = pay_start_transaction(order_price,
+                                        order.first_name, order.last_name,
+                                        order.email,
+                                        get_language(), order.id,
+                                        reverse("tickets:order_confirm",
+                                                args=[order.pk]),
+                                        reverse('tickets:order_exchange'),
+                                        request.get_host(),
+                                        concert_date=order.performance.date,
+                                        event_name=order.performance.production.name)
 
         order.payment = payment
         order.save()
 
-        return redirect(payment_url)
+        send_order_email(order, None, performance, request)  # the ticket_info parameter (None) seems unused?
+
+        return redirect(payment.payment_url)
 
     else:
         return render(request, 'ticketing/order/form.html', {
