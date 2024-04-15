@@ -139,7 +139,7 @@ def create_data_and_pdf_order(request, order: OnlineOrder):
         'first_name': order.first_name,
         'last_name': order.last_name,
         'performance': order.performance,
-        'payment': str(order.payment.get_payment_method_str),
+        'payment': str(order.payment.get_payment_method_str) if order.payment else "overschrijving, oud systeem",
         'production_name': order.performance.production.name,
         'location': order.performance.location,
         'address': order.performance.location.address,
