@@ -125,6 +125,7 @@ class Order(Model):
     hash = CharField(max_length=128)
     # Extra information
     objects = InheritanceManager()
+
     # ==> used to select child classes on query instead of the base class
     # more info: https://django-model-utils.readthedocs.io/en/latest/managers.html#inheritancemanager
 
@@ -167,9 +168,9 @@ class OnlineOrder(Order):
     )
     payment_method = CharField(
         max_length=8, choices=payment_method_choices, default=TRANSFER)
-    # BooleanField is allowed to be null
-    first_concert = BooleanField(null=True, choices=CHOICES)
+    first_concert = BooleanField(null=True, choices=CHOICES)  # BooleanField is allowed to be null
     marketing_feedback = CharField(max_length=120, null=True, blank=True)
+    accepted_conditions = BooleanField(null=False)
     language = CharField(max_length=5, default='nl')
     newsletter_signup = BooleanField()
 

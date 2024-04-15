@@ -91,9 +91,30 @@ class OnlineOrderForm(ModelForm):
         model = OnlineOrder
         exclude = ['performance', 'date', 'tickets']
         fields = ('first_name', 'last_name', 'email',
-                  'first_concert', # 'payment_method',
+                  'first_concert',
                   'marketing_feedback', 'remarks', 'hash', 'seller',
-                  'newsletter_signup')
+                  'newsletter_signup', 'accepted_conditions')
+
+    def clean_accepted_conditions(self):
+        acceptance = self.cleaned_data['accepted_conditions']
+        if not acceptance:
+            raise forms.ValidationError(_('Gelieve de verkoopsvoorwaarden te accepteren.'))
+        return acceptance
+
+    # def is_valid(self):
+    #     """
+    #     Validate the form.
+    #
+    #     Returns True if the form has no errors. Otherwise, False. If errors are
+    #     being ignored, returns False.
+    #     """
+    #
+    #     super(OnlineOrderForm, self).is_valid()
+    #     if not self.accepted_conditions:
+    #         self.add_error('accepted_conditions', _(
+    #             "Gelieve de verkoopsvoorwaarden te aanvaarden"
+    #         ))
+    #     return self.is_bound and not self.errors
 
 
 class PosterForm(ModelForm):

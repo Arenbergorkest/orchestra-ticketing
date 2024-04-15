@@ -1,11 +1,11 @@
 """Urls for user management."""
-
+from django.contrib.staticfiles.storage import staticfiles_storage
 from django.urls import path
+from django.views.generic import RedirectView
 
 import orchestra_ticketing.email
-from . import views, view_stats, views_postermap
 from payments import PAYnl
-from django.views.generic import RedirectView
+from . import views, view_stats, views_postermap
 
 app_name = 'tickets'
 urlpatterns = [
@@ -20,6 +20,9 @@ urlpatterns = [
     path('confirmation/<int:order_id>/', views.order_confirm, name='order_confirm'),
     path('stats/personal/', view_stats.stats_user, name='stats_user'),
     path('stats/', view_stats.stats, name='stats'),
+    path('conditions', RedirectView.as_view(
+        url=staticfiles_storage.url('ticketing/Algemene-verkoopsvoorwaarden-tickets.pdf'),
+        permanent=False), name='order_conditions'),
 
     # Scanning tickets
     path(r'qr/scan', views.qr_scan, name='qr_scan'),
