@@ -1,95 +1,49 @@
 """Overview of views."""
-
-from django.http import JsonResponse
-from django.shortcuts import render
-from django.http import Http404, HttpResponseRedirect
-from django.utils.timezone import now
-from django.template.loader import render_to_string
-from django.utils import translation
-from django.conf import settings
-from django.core.mail import EmailMultiAlternatives
-from django.utils.translation import gettext_lazy as _
-from django.utils.translation import get_language
-from django.core.exceptions import ObjectDoesNotExist
-from django.contrib.auth.decorators import login_required, user_passes_test
-from django.urls import reverse
 from secrets import token_urlsafe
-from .models import Production, Performance, Ticket, Order, OnlineOrder, \
-        PaperOrder
-from .forms import OnlineOrderForm, TicketsForm
-from django.views.decorators.csrf import csrf_exempt
-from weasyprint import HTML
-from django.template.loader import get_template
+
+from django.contrib.auth.decorators import login_required, user_passes_test
+from django.core.exceptions import ObjectDoesNotExist
+from django.http import Http404, HttpResponseRedirect
 from django.http import HttpResponse
+from django.http import JsonResponse
 from django.shortcuts import redirect
+from django.shortcuts import render
+from django.urls import reverse
+from django.utils import translation
+from django.utils.timezone import now
+from django.utils.translation import get_language
+from django.views.decorators.csrf import csrf_exempt
+
+from payments.PAYnl import pay_start_transaction
+from payments.models import PayPayment
+from .email import create_order_info, create_data_and_pdf_order, send_order_email
+from .email import send_order_paid as _send_order_paid
+from .forms import OnlineOrderForm, TicketsForm
+from .models import Production, Performance, Ticket, Order, OnlineOrder, PaperOrder
+
+
+def check_ticket_cancelled(order):
+    """Check if ticket is cancelled."""
+    if type(order) is OnlineOrder:
+        online_order = OnlineOrder(order)
+        if isinstance(online_order.payment, PayPayment):
+            if online_order.payment.payment_status == 'cancel':
+                return True
+    return False
+
 
 # Auxillary functions
-
-
 def _check_soldout(performance: Performance):
     """Check if a performance is sold out or not."""
     total_tickets = 0
     performance_object_orders = Order.objects.filter(performance=performance)
     for order in performance_object_orders:
-        total_tickets += order.num_tickets
+        if not check_ticket_cancelled(order):
+            total_tickets += order.num_tickets
 
     if total_tickets >= performance.seats:
         performance.active = False
         performance.save()
-
-
-def _create_order_info(order, ticket_info, performance):
-    """Create order info."""
-    return {
-        "email": order.email,
-        'first_name': order.first_name,
-        'last_name': order.last_name,
-        'payment_method_str': order.payment_method_str,
-        'production_name': performance.production.name,
-        'date': performance.date.date(),
-        'time': performance.date.time(),
-        'location': performance.location,
-        'address': performance.location.address,
-        'payment_method': order.payment_method,
-        'total_tickets': order.num_tickets,
-        'total_price': order.total_price,
-        'performance': performance.date,
-        'tickets': ticket_info,
-        'transfer_to': settings.TARGET_BANK_ACCOUNT,
-        'order_id': order.id,
-        'order_hash': order.hash,
-    }
-
-
-def _send_order_email(order: OnlineOrder, ticket_info, performance):
-    """Send a mail to confirm the order."""
-    subject = _("Confirmation Order Tickets: %s") % (
-        order.performance.production.name
-    )
-    data = _create_order_info(order, ticket_info, performance)
-    message_plain = render_to_string('ticketing/mail/order_plain.html', data)
-    message_html = render_to_string('ticketing/mail/order.html', data)
-    sender = (
-        "Arenbergorkest <noreply-ticketing@arenbergorkest.be>"
-    )
-    email = EmailMultiAlternatives(
-        subject, message_plain,
-        from_email=sender,
-        to=[data['email']],
-        cc=[settings.EMAIL_WEBTEAM, settings.EMAIL_BESTUUR],
-    )
-    email.attach_alternative(message_html, "text/html")
-    try:
-        email.send()
-    except Exception:
-        import logging
-        log = logging.getLogger('django.request.mail')
-        log.error(
-            "Mail couldn't be send for order: %d" % order.id
-        )
-        log.info(message_plain)
-
-    return data
 
 
 # HTTP pages
@@ -127,7 +81,8 @@ def order(request, id):
     tform = TicketsForm(performance, request.POST or None)
     form = OnlineOrderForm(performance, request.POST or None,
                            initial={'hash': token_urlsafe(50)})
-    if (request.POST and form.is_valid() and tform.is_valid()):
+
+    if request.POST and form.is_valid() and tform.is_valid():
         # Create order
         order = form.save(commit=False)
         try:
@@ -156,86 +111,45 @@ def order(request, id):
 
         Ticket.objects.bulk_create(tickets)
 
-        # Confirm & close sales if needed
-        data = _send_order_email(order, ticket_info, performance)
+        # Close sales if needed
         _check_soldout(performance)
 
+        order_price = order.total_price
+
         # Redirect
-        return render(request, 'ticketing/order/confirm.html', {
-            'performance': performance,
-            'nr_of_tickets': len(tickets),
-            # Required info for followup step:
-            'order_id': order.id,
-            'order_hash': order.hash,
-            'total_price': data['total_price'],
-            'last_name': data['last_name'],
-            'payment_method': data['payment_method'],
-            'transfer_to': data['transfer_to']
-        })
+        payment = pay_start_transaction(order_price,
+                                        order.first_name, order.last_name,
+                                        order.email,
+                                        get_language(), order.id,
+                                        reverse("tickets:order_confirm",
+                                                args=[order.pk]),
+                                        reverse('tickets:order_exchange'),
+                                        request.get_host(),
+                                        concert_date=order.performance.date,
+                                        event_name=order.performance.production.name)
+
+        order.payment = payment
+        order.save()
+
+        send_order_email(order, None, performance, request)  # the ticket_info parameter (None) seems unused?
+
+        return redirect(payment.payment_url)
+
     else:
         return render(request, 'ticketing/order/form.html', {
             "form": form,
             "tform": tform,
-            'performance': performance
+            'performance': performance,
         })
 
 
-def _create_data_and_pdf_order(request, order: OnlineOrder):
-    """Create data and pdf for an order."""
-    ticket_info = []
-    for ticket in order.tickets.all():
-        ticket_info.append((str(ticket.price_category), ticket.qr_code))
+def order_confirm(request, order_id):
+    order = OnlineOrder.objects.get(id=order_id)
 
-    data = {
-        'order_id': order.id,
-        'tickets': ticket_info,
-        'first_name': order.first_name,
-        'last_name': order.last_name,
-        'performance': order.performance,
-        'payment': order.payment_method,
-        'production_name': order.performance.production.name,
-        'location': order.performance.location,
-        'address': order.performance.location.address,
-        'date': order.performance.date.date(),
-        'time': order.performance.date.time(),
-    }
-
-    html_template = get_template('ticketing/mail/tickets_pdf.html')
-    pdf_file = HTML(
-        string=html_template.render(data),
-        base_url=request.build_absolute_uri()).write_pdf()
-    return data, pdf_file
-
-
-def _send_order_payed(request, order: OnlineOrder, subject: str):
-    """Send payment information."""
-    with translation.override(order.language):
-        data, pdf_file = _create_data_and_pdf_order(request, order)
-        message_plain = render_to_string(
-            'ticketing/mail/tickets_plain.html', data)
-        message_html = render_to_string(
-            'ticketing/mail/tickets.html', data)
-        sender = (
-            "Arenbergorkest <noreply-ticketing@arenbergorkest.be>"
-        )
-        email = EmailMultiAlternatives(
-            subject, message_plain,
-            from_email=sender,
-            to=[order.email],
-            cc=[settings.EMAIL_WEBTEAM, settings.EMAIL_BESTUUR],
-        )
-        email.attach_alternative(message_html, "text/html")
-        email.attach("tickets.pdf", pdf_file, 'application/pdf')
-
-    try:
-        email.send()
-    except Exception:
-        import logging
-        log = logging.getLogger('django.request.mail')
-        log.error(
-            "Mail couldn't be send for order: %d" % order.id
-        )
-        log.info(message_plain)
+    return render(request, 'ticketing/order/confirm.html', {
+        # Required info for the followup step:
+        'order': order
+    })
 
 
 def order_info(request, id, code):
@@ -262,62 +176,29 @@ def order_info(request, id, code):
     for name in ticket_price:
         ticket_info.append([name, ticket_price[name], ticket_amount[name]])
 
-    data = _create_order_info(order, ticket_info, order.performance)
+    data = create_order_info(order, ticket_info, order.performance)
     data['order'] = order
+    data['payment'] = order.payment
     return render(request, 'ticketing/order/info.html', data)
 
 
 @login_required
 @user_passes_test(lambda u: u.is_staff, login_url='accessrestricted')
 @user_passes_test(lambda u: u.is_active, login_url='inactive')
-def send_order_payed(request, id):
+def send_order_paid(request, id):
     """set and order to "paid" and send that the order is paid including tickets."""
     try:
         order = OnlineOrder.objects.get(id=id)
     except ObjectDoesNotExist:
         raise Http404
 
-    subject = _("Tickets: %s") % (
-        order.performance.production.name
-    )
-    order.payed = True
+    order.paid = True
     order.save()
-    _send_order_payed(request, order, subject)
+    _send_order_paid(request, order)
     return render(request, 'ticketing/order/mail_send.html', {
         'id': id,
         'order': order
     })
-
-
-@login_required
-@user_passes_test(lambda u: u.is_staff, login_url='accessrestricted')
-@user_passes_test(lambda u: u.is_active, login_url='inactive')
-def test_mail(request, id):
-    """Buy a ticket."""
-    try:
-        order = OnlineOrder.objects.get(id=id)
-    except ObjectDoesNotExist:
-        raise Http404
-
-    # Send the mail in the language of the original user
-    with translation.override(order.language):
-        names = []
-        prices = []
-        numbers = []
-        for categ in order.performance.price_categories.all():
-            names.append(categ.name)
-            prices.append(categ.price)
-            numbers.append(order.tickets.filter(price_category=categ).count())
-
-        ticket_info = []
-        for name, price, number in zip(names, prices, numbers):
-            if number > 0:
-                ticket_info.append([name, price, number])
-
-        data = _create_order_info(order, ticket_info, order.performance)
-        _send_order_email(order, ticket_info, order.performance)
-
-    return render(request, 'ticketing/mail/order.html', data)
 
 
 def download_tickets(request, id, code):
@@ -327,11 +208,11 @@ def download_tickets(request, id, code):
     except ObjectDoesNotExist:
         raise Http404
 
-    if order.hash != code or not order.payed:
+    if order.hash != code or not order.paid:
         raise Http404
 
     with translation.override(order.language):
-        data, pdf_file = _create_data_and_pdf_order(request, order)
+        data, pdf_file = create_data_and_pdf_order(request, order)
         response = HttpResponse(pdf_file, content_type='application/pdf')
         response['Content-Disposition'] = 'filename="tickets.pdf"'
 
@@ -349,7 +230,7 @@ def test_qr(request, id):
         raise Http404
 
     with translation.override(order.language):
-        data, pdf_file = _create_data_and_pdf_order(request, order)
+        data, pdf_file = create_data_and_pdf_order(request, order)
         response = HttpResponse(pdf_file, content_type='application/pdf')
         response['Content-Disposition'] = 'filename="tickets.pdf"'
 
@@ -366,7 +247,7 @@ def test_qr_mail(request, id):
     except ObjectDoesNotExist:
         raise Http404
 
-    data, pdf_file = _create_data_and_pdf_order(request, order)
+    data, pdf_file = create_data_and_pdf_order(request, order)
     return render(request, 'ticketing/mail/tickets.html', data)
 
 
@@ -395,7 +276,7 @@ def order_paper(request, id):
                 tickets.append(Ticket.objects.create(
                     price_category=categ, order=paper_order
                 ))
-        # TODO: Give usefull response with ticket count
+        # TODO: Give useful response with ticket count
         return HttpResponseRedirect(reverse('tickets:stats_user'))
     return render(request, 'ticketing/order/form_paper.html',
                   {'tform': tform, "performance": str(performance)})
@@ -446,7 +327,7 @@ def qr_reply(request):
     hash_code = items[-2]
     message = "Unknown (%s)" % code
     valid = False
-    # TODO: Take into account unpayed tickets & clean up code!
+    # TODO: Take into account unpaid tickets & clean up code!
     # Use an enumerator to assign the state!
     try:
         ticket = Ticket.objects.get(id=id)

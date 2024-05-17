@@ -1,8 +1,11 @@
 """Urls for user management."""
-
+from django.contrib.staticfiles.storage import staticfiles_storage
 from django.urls import path
-from . import views, view_stats, views_postermap
 from django.views.generic import RedirectView
+
+import orchestra_ticketing.email
+from payments import PAYnl
+from . import views, view_stats, views_postermap
 
 app_name = 'tickets'
 urlpatterns = [
@@ -13,22 +16,27 @@ urlpatterns = [
     )),
     path('order/<int:id>/', views.order, name='order'),
     path('order/<int:id>/member/', views.order_paper, name='order_paper'),
+    path('order/exchange', PAYnl.pay_order_exchange_view, name='order_exchange'),
+    path('confirmation/<int:order_id>/', views.order_confirm, name='order_confirm'),
     path('stats/personal/', view_stats.stats_user, name='stats_user'),
     path('stats/', view_stats.stats, name='stats'),
+    path('conditions', RedirectView.as_view(
+        url=staticfiles_storage.url('ticketing/Algemene-verkoopsvoorwaarden-tickets.pdf'),
+        permanent=False), name='order_conditions'),
 
     # Scanning tickets
     path(r'qr/scan', views.qr_scan, name='qr_scan'),
     path(r'qr/reply', views.qr_reply, name='qr_reply'),
     path(r'qr/info/<int:id>/<slug:code>/', views.qr_info, name='qr_info'),
 
-    # Set payed & send mail
-    path(r'order/<int:id>/payed', views.send_order_payed, name='send_payed'),
+    # Set paid & send mail
+    path(r'order/<int:id>/paid', views.send_order_paid, name='send_paid'),
     path(r'order/<int:id>/<slug:code>/', views.order_info, name='order_info'),
     path(r'order/download/<int:id>/<slug:code>/',
          views.download_tickets, name='order_download'),
 
     # Test mails
-    path(r'test/<int:id>/', views.test_mail, name='test_mail'),
+    path(r'test/<int:id>/', orchestra_ticketing.email.test_mail, name='test_mail'),
     path(r'test/<int:id>/qr', views.test_qr, name='test_qr'),
     path(r'test/<int:id>/qrmail', views.test_qr_mail, name='test_qr_mail'),
 
