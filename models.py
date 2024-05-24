@@ -20,7 +20,7 @@ from django.utils.timezone import get_current_timezone, now
 from django.utils.translation import gettext_lazy as _
 from model_utils.managers import InheritanceManager
 
-from payments.models import Payment, PayPayment
+from payments.models import Payment
 
 
 class Location(Model):
