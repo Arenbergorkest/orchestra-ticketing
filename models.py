@@ -9,7 +9,7 @@ from django.db import models
 from django.conf import settings
 from django.db.models import Model, CharField, ImageField, BooleanField, \
     ForeignKey, ManyToManyField, IntegerField, FloatField, DateTimeField, \
-    TextField, EmailField, PositiveSmallIntegerField
+    TextField, EmailField, PositiveSmallIntegerField, FileField
 from django.urls import reverse
 from django.utils.translation import gettext_lazy as _
 from django.utils.timezone import get_current_timezone, now
@@ -59,6 +59,7 @@ class Production(Model):
         "Promotional material, can contain html code."
     ))
     image = ImageField(blank=True, null=True, upload_to='static/upload')
+    pdf = FileField(blank=True, null=True, upload_to='static/concert')
     partners = CharField(max_length=255, blank=True, null=True)
     active = BooleanField(default=True)
 

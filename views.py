@@ -419,8 +419,11 @@ def qr_info(request, id, code):
 
     if ("kassaticket" in code
             or online_order.performance.date.date() <= now().date()):
-        # TODO: Add better redirect for program info...
-        return redirect("./tickets/")
+        if online_order.performance.production.pdf:
+            with open(online_order.performance.production.pdf.path, mode="rb") as file:
+                response = HttpResponse(file.read(), content_type='application/pdf')
+                response['Content-Disposition'] = 'attachment; filename=programma.pdf'
+                return response
 
     return render(request, "ticketing/qr/info.html", {
         "ticket": ticket,
