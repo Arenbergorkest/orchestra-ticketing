@@ -8,7 +8,16 @@ from django.template.loader import render_to_string, get_template
 from django.urls import reverse
 from django.utils import translation
 from django.utils.translation import gettext_lazy as _
-from weasyprint import HTML
+try:
+    from weasyprint import HTML
+except:
+    class HTML:
+
+        def __init__(self, *args, **kwargs):
+            pass
+
+        def write_pdf(self):
+            return "<html>PDF Not supported on this system</html>"
 
 from orchestra_ticketing.models import OnlineOrder
 
