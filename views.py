@@ -81,13 +81,15 @@ def _send_order_email(order: OnlineOrder, ticket_info, performance):
     email.attach_alternative(message_html, "text/html")
     try:
         email.send()
-    except Exception:
+        log.info("Mail send for order %d" % order.id)
+    except Exception as e:
         import logging
         log = logging.getLogger('django.request.mail')
         log.error(
             "Mail couldn't be send for order: %d" % order.id
         )
-        log.info(message_plain)
+        log.info(e)
+    log.info(message_plain)
 
     return data
 
@@ -229,13 +231,16 @@ def _send_order_payed(request, order: OnlineOrder, subject: str):
 
     try:
         email.send()
-    except Exception:
+        log.info("Mail send for order %d" % order.id)
+    except Exception as e:
         import logging
         log = logging.getLogger('django.request.mail')
         log.error(
             "Mail couldn't be send for order: %d" % order.id
         )
-        log.info(message_plain)
+        log.error(e)
+
+    log.info(message_plain)
 
 
 def order_info(request, id, code):
