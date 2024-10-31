@@ -200,7 +200,7 @@ class OnlineOrder(Order):
 
 def random_key():
     """Random key."""
-    return ''.join(choices(ascii_lowercase, k=18))
+    return ''.join(choices(ascii_lowercase, k=12))
 
 
 class PaperOrder(Order):
