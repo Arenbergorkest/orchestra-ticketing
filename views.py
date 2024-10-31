@@ -76,7 +76,8 @@ def _send_order_email(order: OnlineOrder, ticket_info, performance):
         subject, message_plain,
         from_email=sender,
         to=[data['email']],
-        cc=[settings.EMAIL_WEBTEAM, settings.EMAIL_BESTUUR],
+        reply_to=[settings.EMAIL_BESTUUR],
+        cc=[settings.EMAIL_BESTUUR, settings.EMAIL_WEBTEAM],
     )
     email.attach_alternative(message_html, "text/html")
     try:
@@ -224,7 +225,8 @@ def _send_order_payed(request, order: OnlineOrder, subject: str):
             subject, message_plain,
             from_email=sender,
             to=[order.email],
-            cc=[settings.EMAIL_WEBTEAM, settings.EMAIL_BESTUUR],
+            reply_to=[settings.EMAIL_BESTUUR],
+            cc=[settings.EMAIL_BESTUUR, settings.EMAIL_WEBTEAM],
         )
         email.attach_alternative(message_html, "text/html")
         email.attach("tickets.pdf", pdf_file, 'application/pdf')
