@@ -185,7 +185,7 @@ def csv_export(request, id):
         if online_order.payment:
             payment = online_order.payment.get_payment_method_str
         next_row += [online_order.num_tickets, online_order.total_price,
-                     online_order.payment.get_payment_method_str,
+                     payment,
                      online_order.paid,
                      bool_words.get(online_order.first_concert,
                                     online_order.first_concert),
