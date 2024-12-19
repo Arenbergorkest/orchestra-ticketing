@@ -49,7 +49,7 @@ def _check_soldout(performance: Performance):
 # HTTP pages
 def overview(request):
     """Overview of all current ticket sales."""
-    productions = Production.objects.filter(active=True)
+    productions = Production.objects.filter(active=True,hidden=False)
     subdata = []
     for production in productions:
         performances = list(sorted(
@@ -67,6 +67,23 @@ def overview(request):
     }
     return render(request, 'ticketing/overview.html', data)
 
+def production_overview(request, name):
+    """Overview of all current ticket sales of a single production"""
+    production = Production.objects.get(name=name)
+    subdata = []
+    Performances = list(sorted(
+        Performance.objects.filter(production=production),
+        key=lambda obj: obj.date
+    ))
+    subdata.append({
+        "production": production,
+        "performances": Performances
+    })
+    data = {
+        "data": subdata,
+        "available": True
+    }
+    return render(request, 'ticketing/overview.html', data)
 
 def order(request, id):
     """Buy a ticket."""

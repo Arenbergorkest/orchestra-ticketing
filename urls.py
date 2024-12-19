@@ -14,6 +14,7 @@ urlpatterns = [
         pattern_name='tickets:overview',
         permanent=False
     )),
+    path('concerts/<str:name>/', views.production_overview, name='production_overview'),
     path('order/<int:id>/', views.order, name='order'),
     path('order/<int:id>/member/', views.order_paper, name='order_paper'),
     path('order/exchange', PAYnl.pay_order_exchange_view, name='order_exchange'),

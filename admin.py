@@ -67,7 +67,7 @@ class PerformanceInline(admin.TabularInline):
 class ProductionAdmin(ModelAdmin):
     """A production."""
 
-    list_display = ('name', 'description', 'active')
+    list_display = ('name', 'description', 'active', 'hidden')
     inlines = [
         PerformanceInline,
     ]

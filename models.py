@@ -64,6 +64,7 @@ class Production(Model):
     image = ImageField(blank=True, null=True, upload_to='static/upload')
     partners = CharField(max_length=255, blank=True, null=True)
     active = BooleanField(default=True)
+    hidden = BooleanField(default=False)
 
     def __str__(self):
         """Representation."""
