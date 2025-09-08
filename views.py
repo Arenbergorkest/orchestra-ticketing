@@ -96,7 +96,7 @@ def _send_order_email(order: OnlineOrder, ticket_info, performance):
 
 
 # HTTP pages
-def overview(request):
+def overview(request, headless=False):
     """Overview of all current ticket sales."""
     productions = Production.objects.filter(active=True)
     subdata = []
@@ -112,12 +112,13 @@ def overview(request):
 
     data = {
         "data": subdata,
-        "available": len(productions) > 0
+        "available": len(productions) > 0,
+        "headless": headless
     }
     return render(request, 'ticketing/overview.html', data)
 
 
-def order(request, id):
+def order(request, id, headless=False):
     """Buy a ticket."""
     try:
         performance = Performance.objects.get(id=id)
@@ -173,13 +174,15 @@ def order(request, id):
             'total_price': data['total_price'],
             'last_name': data['last_name'],
             'payment_method': data['payment_method'],
-            'transfer_to': data['transfer_to']
+            'transfer_to': data['transfer_to'],
+            "headless": headless
         })
     else:
         return render(request, 'ticketing/order/form.html', {
             "form": form,
             "tform": tform,
-            'performance': performance
+            'performance': performance,
+            "headless": headless
         })
 
 
