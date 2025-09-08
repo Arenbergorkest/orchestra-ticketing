@@ -8,7 +8,7 @@ from .converters import BooleanConverter
 register_converter(BooleanConverter, 'bool')
 app_name = 'tickets'
 urlpatterns = [
-    path('overview', views.overview, name='overview'),
+    path('', views.overview, name='overview'),
     path('overview/<bool:headless>', views.overview, name='overview_optional'),
     path('concerts/', RedirectView.as_view(
         pattern_name='tickets:overview',
