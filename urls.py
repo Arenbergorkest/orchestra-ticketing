@@ -26,7 +26,9 @@ urlpatterns = [
 
     # Set payed & send mail
     path(r'order/<int:id>/payed', views.send_order_payed, name='send_payed'),
-    path(r'order/<int:id>/<slug:code>/', views.order_info, name='order_info'),
+    path(r'order/<int:id>/<slug:code>/<bool:headless>', views.order_info,
+         name='order_info_headless'),
+    path(r'order/<int:id>/<slug:code>', views.order_info, name='order_info'),
     path(r'order/download/<int:id>/<slug:code>/',
          views.download_tickets, name='order_download'),
 

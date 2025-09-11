@@ -138,7 +138,8 @@ def order(request, id, headless=False):
             Order.objects.get(hash=order.hash)
             # Already posted
             return render(request, 'ticketing/order/repost.html', {
-                'performance': performance
+                'performance': performance,
+                "headless": headless
             })
         except ObjectDoesNotExist:
             pass
@@ -248,7 +249,7 @@ def _send_order_payed(request, order: OnlineOrder, subject: str):
     log.info(message_plain)
 
 
-def order_info(request, id, code):
+def order_info(request, id, code, headless=True):
     """Check order information."""
     try:
         order = OnlineOrder.objects.get(id=id)
@@ -274,6 +275,7 @@ def order_info(request, id, code):
 
     data = _create_order_info(order, ticket_info, order.performance)
     data['order'] = order
+    data['headless'] = headless
     return render(request, 'ticketing/order/info.html', data)
 
 

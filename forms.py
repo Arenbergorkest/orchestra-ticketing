@@ -80,9 +80,6 @@ class OnlineOrderForm(ModelForm):
         self.fields['marketing_feedback'].label = _(
             "How did you find us?"
         )
-        self.fields['remarks'].label = _(
-            "Do you have any remarks or special requests?"
-        )
         self.fields['newsletter_signup'].label = _(
             "I want to receive a newsletter containing "
             "information on upcoming concerts."
@@ -119,7 +116,7 @@ class OnlineOrderForm(ModelForm):
         exclude = ['performance', 'date', 'tickets']
         fields = ['first_name', 'last_name', 'email',
                   'first_concert', 'payment_method',
-                  'marketing_feedback', 'remarks', 'hash',
+                  'marketing_feedback', 'hash',
                   'newsletter_signup']
 
 if settings.TICKETING_ENABLE_SELLER:
