@@ -141,8 +141,43 @@ class OnlineOrderAdmin(ModelAdmin, ExportCsvMixin):
 class TicketAdmin(ModelAdmin):
     """Tickets."""
 
-    list_display = ('id', 'price_category', 'used')
+    list_display = ('id', 'price_category', 'used', 'order_link')
     list_filter = ('order__performance', 'used')
+
+    def get_queryset(self, request):
+        """Get queryset with order subclasses."""
+        return super().get_queryset(request).select_related('order')
+
+    def order_link(self, obj):
+        """Create a link to the order."""
+        if obj.order:
+            # Check if it's an OnlineOrder or PaperOrder
+            try:
+                # Try to access as OnlineOrder
+                online_order = obj.order.onlineorder
+                url = reverse('admin:orchestra_ticketing_onlineorder_change', 
+                            args=[online_order.id])
+                name = f'{online_order.first_name} {online_order.last_name}'
+                return format_html('<a href="{}">{}</a>', url, name)
+            except OnlineOrder.DoesNotExist:
+                pass
+            
+            try:
+                # Try to access as PaperOrder
+                paper_order = obj.order.paperorder
+                url = reverse('admin:orchestra_ticketing_paperorder_change', 
+                            args=[paper_order.id])
+                if paper_order.seller:
+                    name = str(paper_order.seller)
+                else:
+                    name = _('Paper order')
+                return format_html('<a href="{}">{}</a>', url, name)
+            except PaperOrder.DoesNotExist:
+                pass
+        
+        return '-'
+    
+    order_link.short_description = _('Order')
 
 
 @admin.register(PaperOrder)
