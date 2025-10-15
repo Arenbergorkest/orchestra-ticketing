@@ -122,6 +122,17 @@ class OnlineOrderAdmin(ModelAdmin, ExportCsvMixin):
     search_fields = ['^first_name', '^last_name', '^performance']
     actions = ['export_as_csv']
 
+    def tickets_pdf(self, obj):
+        """Link to download the tickets PDF for this order.
+        Only show when the order is paid.
+        """
+        if not obj.payed:
+            return ''
+        url = reverse('tickets:order_download', kwargs={'id': obj.id, 'code': obj.hash})
+        return format_html("<a href='{}' target='_blank'>{}</a>", url, _('Tickets PDF'))
+
+    tickets_pdf.short_description = _('Tickets')
+
     def get_queryset(self, request):
         """Get queryset."""
         return super(OnlineOrderAdmin, self).get_queryset(request) \
@@ -129,12 +140,17 @@ class OnlineOrderAdmin(ModelAdmin, ExportCsvMixin):
             .prefetch_related('tickets__price_category')
 
     def set_payed(self, obj):
-        """Set payed."""
+        """show Tickets PDF if paid, otherwise Set payed action."""
+        if obj.payed:
+            url = reverse('tickets:order_download', kwargs={'id': obj.id, 'code': obj.hash})
+            return format_html("<a href='{}' target='_blank'>{}</a>", url, _('Tickets PDF'))
         return format_html(
-            "<a href='{url}'>Set Payed</a>", url=reverse(
-                'tickets:send_payed', kwargs={'id': obj.id}
-            )
+            "<a href='{url}'>{label}</a>",
+            url=reverse('tickets:send_payed', kwargs={'id': obj.id}),
+            label=_('Set payed')
         )
+
+    set_payed.short_description = _('Purchase action')
 
 
 @admin.register(Ticket)
