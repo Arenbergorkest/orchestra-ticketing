@@ -80,12 +80,14 @@ class OnlineOrderForm(ModelForm):
         self.fields['marketing_feedback'].label = _(
             "How did you find us?"
         )
-        self.fields['marketing_feedback'].widget.attrs['class'] = 'form-control'
+        self.fields['marketing_feedback'].widget.attrs[
+            'class'] = 'form-control'
         self.fields['marketing_feedback'].widget.attrs['onchange'] = (
             "document.getElementById('div_id_marketing_feedback_extra')"
-            ".style.display = (this.value === 'andere' ? '' : 'none');"
+            ".style.display = (['andere', 'muzikant', 'dans_leuven', "
+            "'dans_herent'].includes(this.value) ? '' : 'none');"
         )
-        self.fields['marketing_feedback_extra'].label = _("Extra explanation")
+        self.fields['marketing_feedback_extra'].label = _("Extra information")
         self.fields['newsletter_signup'].label = _(
             "I want to receive a newsletter containing "
             "information on upcoming concerts."
