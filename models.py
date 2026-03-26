@@ -157,6 +157,16 @@ CHOICES = (
     (False, _("No")),
 )
 
+CHOICES_MARKETING = (
+    ("muzikant", _("A musician/member of the orchestra")),
+    ("flyer", _("Flyer/affiche")),
+    ("dans_leuven", _("Dance school Leuven")),
+    ("dans_herent", _("Dance school Herent")),
+    ("instagram", _("Instagram")),
+    ("facebook", _("Facebook")),
+    ("andere", _("Other...")),
+)
+
 
 class OnlineOrder(Order):
     """Model for online order."""
@@ -173,9 +183,24 @@ class OnlineOrder(Order):
         max_length=8, choices=payment_method_choices, default=TRANSFER)
     # BooleanField is allowed to be null
     first_concert = BooleanField(null=True, choices=CHOICES)
-    marketing_feedback = CharField(max_length=120, null=True, blank=True)
+    marketing_feedback = CharField(
+        max_length=50, choices=CHOICES_MARKETING, null=True, blank=True
+    )
+    marketing_feedback_extra = CharField(
+        max_length=120, null=True, blank=True
+    )
     language = CharField(max_length=5, default='nl')
     newsletter_signup = BooleanField()
+
+    @property
+    def marketing_feedback_full(self):
+        """Return human-readable marketing feedback, appending extra if 'andere'."""
+        if not self.marketing_feedback:
+            return self.marketing_feedback_extra or ''
+        display = self.get_marketing_feedback_display()
+        if self.marketing_feedback == 'andere' and self.marketing_feedback_extra:
+            return '{}: {}'.format(display, self.marketing_feedback_extra)
+        return display
 
     @property
     def payment_message(self):

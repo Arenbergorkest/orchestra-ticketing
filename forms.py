@@ -28,7 +28,7 @@ class TicketsForm(Form):
         exclude = ['performance', 'date', 'tickets', 'newsletter_signup']
         fields = ('first_name', 'last_name', 'email',
                   'payment_method', 'first_concert',
-                  'marketing_feedback', 'remarks')
+                  'marketing_feedback_extra', 'remarks')
 
     def get_total_tickets(self):
         """Get total tickets."""
@@ -80,6 +80,12 @@ class OnlineOrderForm(ModelForm):
         self.fields['marketing_feedback'].label = _(
             "How did you find us?"
         )
+        self.fields['marketing_feedback'].widget.attrs['class'] = 'form-control'
+        self.fields['marketing_feedback'].widget.attrs['onchange'] = (
+            "document.getElementById('div_id_marketing_feedback_extra')"
+            ".style.display = (this.value === 'andere' ? '' : 'none');"
+        )
+        self.fields['marketing_feedback_extra'].label = _("Extra explanation")
         self.fields['newsletter_signup'].label = _(
             "I want to receive a newsletter containing "
             "information on upcoming concerts."
@@ -116,8 +122,8 @@ class OnlineOrderForm(ModelForm):
         exclude = ['performance', 'date', 'tickets']
         fields = ['first_name', 'last_name', 'email',
                   'first_concert', 'payment_method',
-                  'marketing_feedback', 'hash',
-                  'newsletter_signup']
+                  'marketing_feedback', 'marketing_feedback_extra',
+                  'hash', 'newsletter_signup']
 
 if settings.TICKETING_ENABLE_SELLER:
     OnlineOrderForm.Meta.fields.append('seller')

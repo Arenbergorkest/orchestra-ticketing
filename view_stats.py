@@ -186,7 +186,7 @@ def csv_export(request, id):
                      online_order.payed,
                      bool_words.get(online_order.first_concert,
                                     online_order.first_concert),
-                     online_order.marketing_feedback, online_order.seller,
+                     online_order.marketing_feedback_extra, online_order.seller,
                      online_order.remarks, online_order.email]
         # append the list_output with a list of the current order
         list_output.append(next_row)
