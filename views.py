@@ -81,12 +81,13 @@ def _send_order_email(order: OnlineOrder, ticket_info, performance):
         cc=[settings.EMAIL_BESTUUR, settings.EMAIL_WEBTEAM],
     )
     email.attach_alternative(message_html, "text/html")
+
+    import logging
+    log = logging.getLogger('django.request.mail')
     try:
         email.send()
         log.info("Mail send for order %d" % order.id)
     except Exception as e:
-        import logging
-        log = logging.getLogger('django.request.mail')
         log.error(
             "Mail couldn't be send for order: %d" % order.id
         )
