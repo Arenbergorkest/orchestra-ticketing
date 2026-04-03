@@ -384,6 +384,55 @@ def test_qr_mail(request, id):
 
 
 @login_required
+@user_passes_test(lambda u: u.is_staff, login_url='accessrestricted')
+@user_passes_test(lambda u: u.is_active, login_url='inactive')
+def resend_order_confirmation(request, id):
+    """Resend the order confirmation email for an unpaid order."""
+    from django.contrib import messages
+    from django.shortcuts import redirect
+
+    try:
+        order = OnlineOrder.objects.get(id=id)
+    except ObjectDoesNotExist:
+        raise Http404
+
+    if order.payed:
+        with translation.override(order.language):
+            subject = _("Tickets: %s") % (
+                order.performance.production.name
+            )
+            _send_order_payed(request, order, subject)
+
+        messages.success(
+            request,
+            _("Order payment confirmation with ticket "
+              "resent for order #%d (%s %s).") % (
+                id, order.first_name, order.last_name
+            )
+        )
+    else:
+        with translation.override(order.language):
+            ticket_info = []
+            for categ in order.performance.price_categories.all():
+                count = order.tickets.filter(price_category=categ).count()
+                if count > 0:
+                    ticket_info.append([categ.name, categ.price, count])
+
+            _send_order_email(order, ticket_info, order.performance)
+
+        messages.success(
+            request,
+            _("Order confirmation email resent for order #%d (%s %s).") % (
+                id, order.first_name, order.last_name
+            )
+        )
+
+    return redirect(
+        reverse('admin:orchestra_ticketing_onlineorder_changelist')
+    )
+
+
+@login_required
 def order_paper(request, id):
     """Register a paper sales order."""
     # If it isn't an active performance, raise 404

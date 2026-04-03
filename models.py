@@ -164,6 +164,7 @@ CHOICES_MARKETING = (
     ("dans_herent", _("Dance school Herent")),
     ("instagram", _("Instagram")),
     ("facebook", _("Facebook")),
+    ("nieuwsbrief", _("Our newsletter")),
     ("andere", _("Other...")),
 )
 

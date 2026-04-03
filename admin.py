@@ -112,7 +112,8 @@ class OnlineOrderAdmin(ModelAdmin, ExportCsvMixin):
     """Online order."""
 
     list_display = ('id', 'last_name', 'first_name', 'performance',
-                    'num_tickets', 'total_price', 'payed', 'set_payed')
+                    'num_tickets', 'total_price', 'payed', 'set_payed',
+                    'resend_order_email')
     search_fields = ('last_name', 'first_name', 'email')
     list_filter = ('performance', 'payed', 'performance__active')
     ordering = ('-date',)
@@ -151,6 +152,19 @@ class OnlineOrderAdmin(ModelAdmin, ExportCsvMixin):
         )
 
     set_payed.short_description = _('Purchase action')
+
+    def resend_order_email(self, obj):
+        """Show a 'Resend order email' button for unpaid orders."""
+        if obj.payed:
+            return ''
+        return format_html(
+            "<a href='{url}'>{label}</a>",
+            url=reverse('tickets:resend_order_confirmation',
+                        kwargs={'id': obj.id}),
+            label=_('Resend order email')
+        )
+
+    resend_order_email.short_description = _('Resend order email')
 
 
 @admin.register(Ticket)
