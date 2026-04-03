@@ -21,7 +21,6 @@ from django.views.decorators.csrf import csrf_exempt
 from weasyprint import HTML
 from django.template.loader import get_template
 from django.http import HttpResponse
-from django.shortcuts import redirect
 
 # Auxillary functions
 
@@ -237,12 +236,12 @@ def _send_order_payed(request, order: OnlineOrder, subject: str):
         email.attach_alternative(message_html, "text/html")
         email.attach("tickets.pdf", pdf_file, 'application/pdf')
 
+    import logging
+    log = logging.getLogger('django.request.mail')
     try:
         email.send()
         log.info("Mail send for order %d" % order.id)
     except Exception as e:
-        import logging
-        log = logging.getLogger('django.request.mail')
         log.error(
             "Mail couldn't be send for order: %d" % order.id
         )
@@ -434,9 +433,14 @@ def qr_info(request, id, code):
     if ("kassaticket" in code
             or online_order.performance.date.date() <= now().date()):
         if online_order.performance.production.pdf:
-            with open(online_order.performance.production.pdf.path, mode="rb") as file:
-                response = HttpResponse(file.read(), content_type='application/pdf')
-                response['Content-Disposition'] = 'attachment; filename=programma.pdf'
+            with open(
+                online_order.performance.production.pdf.path, mode="rb"
+            ) as file:
+                response = HttpResponse(
+                    file.read(), content_type='application/pdf'
+                )
+                response['Content-Disposition'] = \
+                    'attachment; filename=programma.pdf'
                 return response
 
     return render(request, "ticketing/qr/info.html", {
