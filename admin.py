@@ -156,7 +156,12 @@ class OnlineOrderAdmin(ModelAdmin, ExportCsvMixin):
     def resend_order_email(self, obj):
         """Show a 'Resend order email' button for unpaid orders."""
         if obj.payed:
-            return ''
+            return format_html(
+                "<a href='{url}'>{label}</a>",
+                url=reverse('tickets:send_payed',
+                            kwargs={'id': obj.id}),
+                label=_('Resend payed')
+
         return format_html(
             "<a href='{url}'>{label}</a>",
             url=reverse('tickets:resend_order_confirmation',
