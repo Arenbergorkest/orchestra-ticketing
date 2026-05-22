@@ -120,7 +120,6 @@ class OnlineOrderAdmin(ModelAdmin, ExportCsvMixin):
     inlines = [
         TicketInline,
     ]
-    search_fields = ['^first_name', '^last_name', '^performance']
     actions = ['export_as_csv']
 
     def tickets_pdf(self, obj):
