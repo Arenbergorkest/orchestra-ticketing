@@ -161,6 +161,7 @@ class OnlineOrderAdmin(ModelAdmin, ExportCsvMixin):
                 url=reverse('tickets:send_payed',
                             kwargs={'id': obj.id}),
                 label=_('Resend payed')
+            )
 
         return format_html(
             "<a href='{url}'>{label}</a>",
