@@ -48,6 +48,36 @@ class MarketingChoiceTests(TestCase):
         with self.assertRaises(ValidationError):
             form.fields['marketing_feedback'].clean('facebook')
 
+    def test_extra_feedback_visibility_is_configurable_per_option(self):
+        self.assertFalse(self.choice.show_feedback_extra)
+        other = MarketingChoice.objects.get(tag='andere')
+        self.production.marketing_choices.add(other)
+        form = OnlineOrderForm(self.performance, initial={
+            'marketing_feedback': other.tag
+        })
+        options = form.fields['marketing_feedback'].widget.optgroups(
+            'marketing_feedback', [other.tag]
+        )
+        settings_by_tag = {
+            str(option['value']): option
+            for _, group, _ in options for option in group
+        }
+        self.assertEqual(settings_by_tag['']['attrs']['data-show-feedback-extra'],
+                         'false')
+        self.assertEqual(
+            settings_by_tag['website']['attrs']['data-show-feedback-extra'],
+            'false'
+        )
+        self.assertEqual(
+            settings_by_tag['andere']['attrs']['data-show-feedback-extra'], 'true'
+        )
+        self.assertTrue(settings_by_tag['andere']['selected'])
+        self.choice.show_feedback_extra = True
+        self.choice.save()
+        form = OnlineOrderForm(self.performance)
+        self.assertIn('data-show-feedback-extra="true"',
+                      str(form['marketing_feedback']))
+
     def test_removed_choice_is_retained_only_for_existing_order(self):
         self.production.marketing_choices.clear()
         form = OnlineOrderForm(self.performance)
@@ -85,6 +115,36 @@ class MarketingChoiceTests(TestCase):
         )
         with self.assertRaises(ProtectedError):
             self.choice.delete()
+
+
+class FeedbackExtraMigrationTests(TransactionTestCase):
+    def test_migration_preserves_previous_visibility(self):
+        before = ('orchestra_ticketing', '0017_dynamic_marketing_choices')
+        after = ('orchestra_ticketing', '0018_marketingchoice_show_feedback_extra')
+        executor = MigrationExecutor(connection)
+        executor.migrate([before])
+        self.addCleanup(self.restore_latest_schema)
+        old_apps = executor.loader.project_state([before]).apps
+        MarketingChoice = old_apps.get_model('orchestra_ticketing', 'MarketingChoice')
+        MarketingChoice.objects.create(
+            tag='custom', text='Custom', translation='Aangepast'
+        )
+        executor = MigrationExecutor(connection)
+        executor.migrate([after])
+        new_apps = executor.loader.project_state([after]).apps
+        MarketingChoice = new_apps.get_model('orchestra_ticketing', 'MarketingChoice')
+        self.assertSetEqual(
+            set(MarketingChoice.objects.filter(show_feedback_extra=True)
+                .values_list('tag', flat=True)),
+            {'andere', 'muzikant', 'dans_leuven', 'dans_herent'}
+        )
+        self.assertFalse(
+            MarketingChoice.objects.get(tag='custom').show_feedback_extra
+        )
+
+    def restore_latest_schema(self):
+        executor = MigrationExecutor(connection)
+        executor.migrate(executor.loader.graph.leaf_nodes())
 
 
 class MarketingChoiceMigrationTests(TransactionTestCase):

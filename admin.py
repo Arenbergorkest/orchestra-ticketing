@@ -54,7 +54,8 @@ class PriceCategoryAdmin(ModelAdmin):
 class MarketingChoiceAdmin(ModelAdmin):
     """Manage the available marketing feedback options."""
 
-    list_display = ('tag', 'text', 'translation')
+    list_display = ('tag', 'text', 'translation', 'show_feedback_extra')
+    list_filter = ('show_feedback_extra',)
     search_fields = ('tag', 'text', 'translation')
 
     def get_readonly_fields(self, request, obj=None):

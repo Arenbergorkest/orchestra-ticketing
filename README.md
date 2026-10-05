@@ -33,8 +33,13 @@ choices to all existing productions to preserve the options offered before this
 change, then removes the `active` field from marketing choices. New productions
 require an explicit selection in admin.
 
-The existing tags `andere`, `muzikant`, `dans_leuven`, and `dans_herent` continue
-to show the extra-information field. Displayed feedback and CSV exports include
+Enable `show_feedback_extra` on a marketing choice in admin to show the optional
+extra-information field when that choice is selected, including on initial page
+load. New choices default to hiding this field. Migration
+`0018_marketingchoice_show_feedback_extra` enables it for the existing tags
+`andere`, `muzikant`, `dans_leuven`, and `dans_herent` to preserve their behavior.
+This setting only controls visibility; saved extra information is retained.
+Displayed feedback and CSV exports include
 any saved extra information alongside the translated choice.
 
 ## Todo

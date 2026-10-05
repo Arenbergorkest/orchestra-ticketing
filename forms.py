@@ -1,12 +1,26 @@
 """Forms for orchestra seasons."""
 
 from django.conf import settings
-from django.forms import ModelForm, Form, IntegerField, HiddenInput
+from django.forms import ModelForm, Form, IntegerField, HiddenInput, Select
 from django.utils.translation import gettext_lazy as _
 from django.utils.timezone import now
 from django.contrib.auth import get_user_model
 from django.db.models import Q
 from .models import MarketingChoice, OnlineOrder, Production, Poster
+
+
+class MarketingChoiceSelect(Select):
+    """Expose each choice's extra-feedback setting to the order page."""
+
+    def create_option(self, name, value, label, selected, index,
+                      subindex=None, attrs=None):
+        option = super().create_option(
+            name, value, label, selected, index, subindex, attrs
+        )
+        option['attrs']['data-show-feedback-extra'] = (
+            'true' if value and value.instance.show_feedback_extra else 'false'
+        )
+        return option
 
 
 class TicketsForm(Form):
@@ -82,18 +96,13 @@ class OnlineOrderForm(ModelForm):
         if self.instance.pk and self.instance.marketing_feedback_id is not None:
             available_choices |= Q(tag=self.instance.marketing_feedback_id)
         self.fields['marketing_feedback'].queryset = (
-            MarketingChoice.objects.filter(available_choices)
+            MarketingChoice.objects.filter(available_choices).distinct()
         )
         self.fields['marketing_feedback'].label = _(
             "How did you find us?"
         )
         self.fields['marketing_feedback'].widget.attrs[
             'class'] = 'form-control'
-        self.fields['marketing_feedback'].widget.attrs['onchange'] = (
-            "document.getElementById('div_id_marketing_feedback_extra')"
-            ".style.display = (['andere', 'muzikant', 'dans_leuven', "
-            "'dans_herent'].includes(this.value) ? '' : 'none');"
-        )
         self.fields['marketing_feedback_extra'].label = _("Extra information")
         self.fields['newsletter_signup'].label = _(
             "I want to receive a newsletter containing "
@@ -133,6 +142,7 @@ class OnlineOrderForm(ModelForm):
                   'first_concert', 'payment_method',
                   'marketing_feedback', 'marketing_feedback_extra',
                   'hash', 'newsletter_signup']
+        widgets = {'marketing_feedback': MarketingChoiceSelect}
 
 if settings.TICKETING_ENABLE_SELLER:
     OnlineOrderForm.Meta.fields.append('seller')

@@ -164,6 +164,9 @@ class MarketingChoice(Model):
     tag = CharField(max_length=50, unique=True)
     text = CharField(max_length=200, help_text="English text")
     translation = CharField(max_length=200, help_text="Dutch translation")
+    show_feedback_extra = BooleanField(
+        default=False, verbose_name=_("Show extra feedback field")
+    )
 
     def __str__(self):
         """Return the label in the current language."""
