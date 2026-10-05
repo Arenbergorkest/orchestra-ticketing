@@ -11,7 +11,7 @@ from django.db.models import Model, CharField, ImageField, BooleanField, \
     ForeignKey, ManyToManyField, IntegerField, FloatField, DateTimeField, \
     TextField, EmailField, PositiveSmallIntegerField, FileField
 from django.urls import reverse
-from django.utils.translation import gettext_lazy as _
+from django.utils.translation import gettext_lazy as _, get_language
 from django.utils.timezone import get_current_timezone, now
 from django.utils import timezone
 from model_utils.managers import InheritanceManager
@@ -62,6 +62,7 @@ class Production(Model):
     pdf = FileField(blank=True, null=True, upload_to='static/concert')
     partners = CharField(max_length=255, blank=True, null=True)
     active = BooleanField(default=True)
+    marketing_choices = ManyToManyField('MarketingChoice', blank=True)
 
     def __str__(self):
         """Representation."""
@@ -157,16 +158,17 @@ CHOICES = (
     (False, _("No")),
 )
 
-CHOICES_MARKETING = (
-    ("muzikant", _("A musician/member of the orchestra")),
-    ("flyer", _("Flyer/affiche")),
-    ("dans_leuven", _("Dance school Leuven")),
-    ("dans_herent", _("Dance school Herent")),
-    ("instagram", _("Instagram")),
-    ("facebook", _("Facebook")),
-    ("nieuwsbrief", _("Our newsletter")),
-    ("andere", _("Other...")),
-)
+class MarketingChoice(Model):
+    """A configurable source through which a customer found the orchestra."""
+
+    tag = CharField(max_length=50, unique=True)
+    text = CharField(max_length=200, help_text="English text")
+    translation = CharField(max_length=200, help_text="Dutch translation")
+
+    def __str__(self):
+        """Return the label in the current language."""
+        language = get_language() or settings.LANGUAGE_CODE
+        return self.translation if language.split('-')[0] == 'nl' else self.text
 
 
 class OnlineOrder(Order):
@@ -184,8 +186,9 @@ class OnlineOrder(Order):
         max_length=8, choices=payment_method_choices, default=TRANSFER)
     # BooleanField is allowed to be null
     first_concert = BooleanField(null=True, choices=CHOICES)
-    marketing_feedback = CharField(
-        max_length=50, choices=CHOICES_MARKETING, null=True, blank=True
+    marketing_feedback = ForeignKey(
+        MarketingChoice, to_field='tag', db_column='marketing_feedback',
+        on_delete=models.PROTECT, null=True, blank=True
     )
     marketing_feedback_extra = CharField(
         max_length=120, null=True, blank=True
@@ -195,11 +198,11 @@ class OnlineOrder(Order):
 
     @property
     def marketing_feedback_full(self):
-        """Return human-readable marketing feedback, appending extra if 'andere'."""
+        """Return the translated feedback, including any extra information."""
         if not self.marketing_feedback:
             return self.marketing_feedback_extra or ''
-        display = self.get_marketing_feedback_display()
-        if self.marketing_feedback == 'andere' and self.marketing_feedback_extra:
+        display = str(self.marketing_feedback)
+        if self.marketing_feedback_extra:
             return '{}: {}'.format(display, self.marketing_feedback_extra)
         return display
 

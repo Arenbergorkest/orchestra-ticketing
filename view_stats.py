@@ -153,7 +153,7 @@ def csv_export(request, id):
 
     online_orders = OnlineOrder.objects.filter(
         performance__id=id
-    ).prefetch_related(
+    ).select_related('marketing_feedback').prefetch_related(
         'performance__price_categories', 'tickets__price_category'
     )
     price_categories = performance.price_categories.all()
@@ -186,7 +186,7 @@ def csv_export(request, id):
                      online_order.payed,
                      bool_words.get(online_order.first_concert,
                                     online_order.first_concert),
-                     online_order.marketing_feedback_extra, online_order.seller,
+                     online_order.marketing_feedback_full, online_order.seller,
                      online_order.remarks, online_order.email]
         # append the list_output with a list of the current order
         list_output.append(next_row)

@@ -7,7 +7,7 @@ from django.urls import reverse
 from django.utils.html import format_html
 from alumnisite.tools import ExportCsvMixin
 from .models import Location, PriceCategory, Production, Performance, \
-    Ticket, OnlineOrder, PaperOrder, Poster
+    Ticket, OnlineOrder, PaperOrder, Poster, MarketingChoice
 from django.contrib.admin import widgets
 
 
@@ -50,6 +50,18 @@ class PriceCategoryAdmin(ModelAdmin):
     list_display = ('name', 'price')
 
 
+@admin.register(MarketingChoice)
+class MarketingChoiceAdmin(ModelAdmin):
+    """Manage the available marketing feedback options."""
+
+    list_display = ('tag', 'text', 'translation')
+    search_fields = ('tag', 'text', 'translation')
+
+    def get_readonly_fields(self, request, obj=None):
+        """Keep tags stable once an option has been created."""
+        return ('tag',) if obj else ()
+
+
 class PerformanceInline(admin.TabularInline):
     """An inline performance."""
 
@@ -62,6 +74,7 @@ class ProductionAdmin(ModelAdmin):
     """A production."""
 
     list_display = ('name', 'description', 'active')
+    filter_horizontal = ('marketing_choices',)
     inlines = [
         PerformanceInline,
     ]

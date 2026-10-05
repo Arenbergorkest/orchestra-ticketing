@@ -5,7 +5,8 @@ from django.forms import ModelForm, Form, IntegerField, HiddenInput
 from django.utils.translation import gettext_lazy as _
 from django.utils.timezone import now
 from django.contrib.auth import get_user_model
-from .models import OnlineOrder, Production, Poster
+from django.db.models import Q
+from .models import MarketingChoice, OnlineOrder, Production, Poster
 
 
 class TicketsForm(Form):
@@ -77,6 +78,12 @@ class OnlineOrderForm(ModelForm):
             "Is this your first concert?"
         )
         self.fields['first_concert'].widget.attrs['class'] = 'form-control'
+        available_choices = Q(production=performance.production)
+        if self.instance.pk and self.instance.marketing_feedback_id is not None:
+            available_choices |= Q(tag=self.instance.marketing_feedback_id)
+        self.fields['marketing_feedback'].queryset = (
+            MarketingChoice.objects.filter(available_choices)
+        )
         self.fields['marketing_feedback'].label = _(
             "How did you find us?"
         )
